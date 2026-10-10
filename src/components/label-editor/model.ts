@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import headphones from '@/assets/headphones.jpg';
 
 export type Language = 'ar' | 'ckb';
 export const productSchema = z.object({
@@ -11,7 +12,7 @@ export type Product = z.infer<typeof productSchema>;
 export type ElementKind = 'store' | 'name' | 'model' | 'photo' | 'details' | 'specs' | 'warranty' | 'barcode' | 'footer' | 'text' | 'line';
 export type LabelElement = { id: string; kind: ElementKind; x: number; y: number; width: number; height: number; visible: boolean; text?: string; fontSize?: number; bold?: boolean; align?: 'right' | 'center' | 'left' };
 export type DocumentState = { product: Product; elements: LabelElement[]; theme: string };
-export const sampleProduct: Product = { name: 'سماعات لاسلكية', model: 'SONY WH-1000XM5', color: 'أبيض', size: 'قياسي', specs: 'عزل ضوضاء نشط • اتصال بلوتوث 5.2\nبطارية تدوم حتى 30 ساعة', warranty: 'ضمان لمدة سنة', barcode: '6291041500213', store: 'متجر التقنية', image: '' };
+export const sampleProduct: Product = { name: 'سماعات لاسلكية', model: 'SONY WH-1000XM5', color: 'أبيض', size: 'قياسي', specs: 'عزل ضوضاء نشط • اتصال بلوتوث 5.2\nبطارية تدوم حتى 30 ساعة', warranty: 'ضمان لمدة سنة', barcode: '6291041500213', store: 'متجر التقنية', image: headphones };
 export const defaultElements: LabelElement[] = [
   { id:'store',kind:'store',x:25,y:23,width:300,height:26,visible:true },
   { id:'name',kind:'name',x:20,y:57,width:310,height:43,visible:true },
