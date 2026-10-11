@@ -22,14 +22,14 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   const { product:p, elements, theme } = document;
   const t = words[language];
   function start(e: PointerEvent<HTMLDivElement>, el: LabelElement) {
-    if (printing || editing===el.id) return;
+    if (printing || editing?.startsWith(`${el.id}:`)) return;
     e.stopPropagation(); onSelect?.(el.id);
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { id:el.id, startX:e.clientX, startY:e.clientY, x:el.x, y:el.y, scale:(paperRef.current?.getBoundingClientRect().width || 350)/350 };
   }
   function editable(el:LabelElement,value:string,field?:keyof Product) {
-    if(editing===el.id && !printing) return <textarea autoFocus aria-label={field ? (field==='store'?t.store:t[field as 'name']) : t.text} className="inline-label-input" defaultValue={value} maxLength={field==='specs'?500:field==='barcode'?500:120} onPointerDown={e=>e.stopPropagation()} onBlur={e=>{onTextChange?.(el.id,e.target.value,field);setEditing(null);}} onKeyDown={e=>{if(e.key==='Escape'){setEditing(null);}if(e.key==='Enter' && !e.shiftKey){e.preventDefault();e.currentTarget.blur();}}}/>;
-    return value;
+    if(editing===`${el.id}:${field ?? 'text'}` && !printing) return <textarea autoFocus aria-label={field ? (field==='store'?t.store:t[field as 'name']) : t.text} className="inline-label-input" defaultValue={value} maxLength={field==='specs'?500:field==='barcode'?500:120} onPointerDown={e=>e.stopPropagation()} onBlur={e=>{onTextChange?.(el.id,e.target.value,field);setEditing(null);}} onKeyDown={e=>{if(e.key==='Escape'){setEditing(null);}if(e.key==='Enter' && !e.shiftKey){e.preventDefault();e.currentTarget.blur();}}}/>;
+    return <span onDoubleClick={e=>{if(printing || !onTextChange)return;e.stopPropagation();onSelect?.(el.id);setEditing(`${el.id}:${field ?? 'text'}`);}}>{value}</span>;
   }
   function move(e: PointerEvent<HTMLDivElement>, el: LabelElement, commit: boolean) {
     const d = drag.current;
@@ -39,7 +39,7 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   }
   return <div ref={paperRef} className={`label-paper theme-${theme}`} dir="rtl" onClick={() => !printing && onSelect?.('')}>
     <div className="label-stripe" />
-    {elements.filter(el=>el.visible).map(el=><div key={el.id} data-element={el.id} aria-label={el.kind} className={`label-element ${selected===el.id && !printing ? 'is-selected':''}`} style={{ left:el.x,top:el.y,width:el.width,height:el.height } as CSSProperties} onDoubleClick={()=>{if(!printing && onTextChange && !['photo','line','barcode'].includes(el.kind)) {onSelect?.(el.id);setEditing(el.id);}}} onPointerDown={e=>start(e,el)} onPointerMove={e=>move(e,el,false)} onPointerUp={e=>move(e,el,true)} onPointerCancel={()=>{drag.current=null;}} onClick={e=>e.stopPropagation()}>
+    {elements.filter(el=>el.visible).map(el=><div key={el.id} data-element={el.id} aria-label={el.kind} className={`label-element ${selected===el.id && !printing ? 'is-selected':''}`} style={{ left:el.x,top:el.y,width:el.width,height:el.height } as CSSProperties} onDoubleClick={()=>{if(!printing && onTextChange && !['photo','line','barcode','details'].includes(el.kind)) {onSelect?.(el.id);setEditing(`${el.id}:${['store','name','model','specs','warranty'].includes(el.kind)?el.kind:'text'}`);}}} onPointerDown={e=>start(e,el)} onPointerMove={e=>move(e,el,false)} onPointerUp={e=>move(e,el,true)} onPointerCancel={()=>{drag.current=null;}} onClick={e=>e.stopPropagation()}>
       <div className={`label-${el.kind} ${el.textColor?`ink-${el.textColor}`:''}`} style={{ ...(el.fontSize ? { fontSize:el.fontSize } : {}), fontWeight:el.fontWeight ?? (el.bold ? 750:undefined), ...(el.align ? {textAlign:el.align}:{}), height:'100%' }}>
         {el.kind==='store' && <><Store size={13}/>{editable(el,p.store,'store')}</>}
         {el.kind==='name' && editable(el,p.name,'name')}
