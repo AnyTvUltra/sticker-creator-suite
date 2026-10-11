@@ -24,7 +24,6 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   function start(e: PointerEvent<HTMLDivElement>, el: LabelElement) {
     if (printing || editing?.startsWith(`${el.id}:`)) return;
     e.stopPropagation(); onSelect?.(el.id);
-    e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { id:el.id, startX:e.clientX, startY:e.clientY, x:el.x, y:el.y, scale:(paperRef.current?.getBoundingClientRect().width || 350)/350 };
   }
   function editable(el:LabelElement,value:string,field?:keyof Product) {
@@ -34,6 +33,7 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   function move(e: PointerEvent<HTMLDivElement>, el: LabelElement, commit: boolean) {
     const d = drag.current;
     if (!d || d.id !== el.id) return;
+    if(!commit && (Math.abs(e.clientX-d.startX)>2 || Math.abs(e.clientY-d.startY)>2))e.currentTarget.setPointerCapture(e.pointerId);
     onMove?.(el.id, Math.round(Math.max(0,Math.min(350-el.width,d.x+(e.clientX-d.startX)/d.scale))), Math.round(Math.max(8,Math.min(497-el.height,d.y+(e.clientY-d.startY)/d.scale))), commit);
     if (commit) drag.current=null;
   }
