@@ -5,12 +5,12 @@ export type Language = 'ar' | 'ckb';
 export const productSchema = z.object({
   name: z.string().trim().min(1).max(120), model: z.string().max(100),
   color: z.string().max(60), size: z.string().max(60), specs: z.string().max(500),
-  warranty: z.string().max(100), barcode: z.string().regex(/^[\x20-\x7E]{1,40}$/),
+  warranty: z.string().max(100), barcode: z.string().min(1).max(500), codeFormat: z.enum(['code128','qr']).optional(),
   store: z.string().max(80), image: z.string().max(3000000),
-});
+}).refine(p => p.codeFormat === 'qr' || /^[\x20-\x7E]{1,40}$/.test(p.barcode), {path:['barcode'], message:'Invalid CODE128 value'});
 export type Product = z.infer<typeof productSchema>;
 export type ElementKind = 'store' | 'name' | 'model' | 'photo' | 'details' | 'specs' | 'warranty' | 'barcode' | 'footer' | 'text' | 'line';
-export type LabelElement = { id: string; kind: ElementKind; x: number; y: number; width: number; height: number; visible: boolean; text?: string; fontSize?: number; bold?: boolean; align?: 'right' | 'center' | 'left' };
+export type LabelElement = { id: string; kind: ElementKind; x: number; y: number; width: number; height: number; visible: boolean; text?: string; fontSize?: number; bold?: boolean; fontWeight?: number; textColor?: 'ink' | 'muted' | 'green' | 'red' | 'blue'; align?: 'right' | 'center' | 'left' };
 export type DocumentState = { product: Product; elements: LabelElement[]; theme: string };
 export const sampleProduct: Product = { name: 'سماعات لاسلكية', model: 'SONY WH-1000XM5', color: 'أبيض', size: 'قياسي', specs: 'عزل ضوضاء نشط • اتصال بلوتوث 5.2\nبطارية تدوم حتى 30 ساعة', warranty: 'ضمان لمدة سنة', barcode: '6291041500213', store: 'متجر التقنية', image: headphones };
 export const defaultElements: LabelElement[] = [

@@ -89,6 +89,9 @@
   --label-rose: oklch(.93 .032 15);
   --label-blue: oklch(.92 .035 245);
   --label-silver: oklch(.94 .004 160);
+  --text-green: oklch(.43 .11 164);
+  --text-red: oklch(.49 .19 28);
+  --text-blue: oklch(.46 .17 250);
   --workspace-dot: oklch(.83 .008 160);
   --paper-shadow: 0 14px 40px oklch(.25 .02 160 / .09), 0 2px 5px oklch(.25 .02 160 / .04);
 }
@@ -222,3 +225,26 @@ textarea.field-input { height:79px;resize:vertical;line-height:1.9; }
 .print-preview { direction:ltr; }
 .print-summary label { white-space:nowrap; }
 @media print { .print-page { direction:ltr; } }
+.ink-ink { color:var(--label-ink); }.ink-muted { color:var(--muted-foreground); }.ink-green { color:var(--text-green); }.ink-red { color:var(--text-red); }.ink-blue { color:var(--text-blue); }
+.text-swatch { background:currentColor!important; }
+.inline-label-input { width:100%;height:100%;min-width:0;resize:none;background:var(--label-paper);color:inherit;border:1px solid var(--primary);font:inherit;text-align:inherit;line-height:inherit;padding:0;cursor:text; }
+.label-qr { width:auto;height:100%;aspect-ratio:1;flex-shrink:0; }
+.label-name,.label-text,.label-store { white-space:pre-wrap;overflow-wrap:anywhere; }
+.print-dialog { width:min(680px,calc(100vw - 24px));max-width:680px!important;max-height:92dvh;overflow-y:auto; }
+.print-controls { display:flex;align-items:end;gap:12px; }.print-controls .field { flex:1;margin:0; }.print-controls button { flex-shrink:0; }
+.a4-preview { direction:ltr;display:flex;justify-content:center;background:var(--muted);padding:12px;overflow:hidden; }
+.a4-preview-frame { width:317.48px;height:449.01px;flex-shrink:0; }.a4-preview-frame .a4-sheet { transform:scale(.4);transform-origin:top left; }
+.a4-sheet { width:210mm;height:297mm;position:relative;background:var(--label-paper);direction:ltr;overflow:hidden; }
+.sheet-slot { position:absolute;overflow:hidden; }
+.sheet-slot.movable { touch-action:none;cursor:grab;outline:1px dashed var(--border); }.sheet-slot.selected-slot { outline:3px solid var(--primary);outline-offset:-3px; }
+.sheet-label { position:absolute;left:0;top:0;width:74mm;height:105mm;transform-origin:top left;pointer-events:none; }
+.sheet-label.rotated { transform:translateX(105mm) rotate(90deg); }
+.sheet-label .label-paper { transform:scale(.7991001125,.7985103535);box-shadow:none; }
+.slot-number { position:absolute;left:2mm;top:2mm;background:var(--primary);color:var(--primary-foreground);min-width:6mm;height:6mm;font-size:14px;text-align:center;line-height:6mm; }
+.print-position { display:flex;align-items:end;gap:10px; }.print-position>select { flex:1; }.print-position label { width:95px;font-size:10px;direction:ltr; }
+@media(max-width:420px) { .a4-preview-frame { width:277.8px;height:392.9px; }.a4-preview-frame .a4-sheet { transform:scale(.35); }.print-controls { flex-wrap:wrap; }.print-position { flex-wrap:wrap; }.print-position>select { flex-basis:100%; } }
+@media print {
+  .print-a4 .print-page { width:210mm;height:297mm; }
+  .print-a4 .sheet-label .label-paper,.print-a7 .label-paper { transform:scale(.7991001125,.7985103535); }
+  .sheet-slot { outline:none!important; }.slot-number { display:none; }
+}

@@ -1,4 +1,7 @@
 # Label editor
+- [x] Direct label text editing, text color and weight
+- [x] A4 sheet positioning and multi-label printing including seven A7 labels
+- [x] QR switching and regression verification
 - [x] Arabic and Sorani RTL editor and product fields
 - [x] Drag-and-drop A7 canvas, templates, barcode and print
 - [x] Private saved products with Cloud sign-in
