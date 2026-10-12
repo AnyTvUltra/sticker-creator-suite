@@ -5,11 +5,10 @@ import { LoaderCircle } from 'lucide-react';
 
 const hints = new Map();
 hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
-  BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
-  BarcodeFormat.ITF, BarcodeFormat.CODABAR, BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
+  BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
+  BarcodeFormat.CODE_128, BarcodeFormat.CODE_39,
+  BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.ITF,
 ]);
-hints.set(DecodeHintType.TRY_HARDER, true);
 
 /** Live camera view that decodes barcodes; calls onResult with the raw text. Stops the camera on unmount. */
 export function BarcodeScanner({ onResult, onError, className = '' }: { onResult: (text: string) => void; onError?: (err: unknown) => void; className?: string }) {
@@ -17,13 +16,21 @@ export function BarcodeScanner({ onResult, onError, className = '' }: { onResult
   const controlsRef = useRef<IScannerControls | null>(null);
   const [ready, setReady] = useState(false);
 
+  const lastRef = useRef<{ text: string; at: number } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 250 });
+    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 90, delayBetweenScanSuccess: 800 });
     reader.decodeFromConstraints(
       { audio: false, video: { facingMode: { ideal: 'environment' } } },
       videoRef.current!,
-      (result) => { if (result) onResult(result.getText()); },
+      (result) => {
+        if (!result) return;
+        const text = result.getText();
+        const last = lastRef.current;
+        if (last && last.text === text && Date.now() - last.at < 1500) return;
+        lastRef.current = { text, at: Date.now() };
+        onResult(text);
+      },
     ).then(controls => {
       if (cancelled) controls.stop(); else { controlsRef.current = controls; setReady(true); }
     }).catch(err => { if (!cancelled) onError?.(err); });

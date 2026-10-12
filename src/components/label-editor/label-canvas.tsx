@@ -78,7 +78,7 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
         {el.kind==='details' && <><span>{t.color}: {editable(el,p.color,'color')}</span><span>·</span><span>{t.size}: {editable(el,p.size,'size')}</span></>}
         {el.kind==='specs' && editable(el,p.specs,'specs')}
         {el.kind==='warranty' && <><ShieldCheck size={13}/>{editable(el,p.warranty,'warranty')}</>}
-        {el.kind==='barcode' && (p.codeFormat==='qr'?<QRCodeSVG className="label-qr" value={p.barcode || '0'} marginSize={4} level="M"/>:<Barcode value={p.barcode}/>)}
+        {el.kind==='barcode' && (p.codeFormat==='qr'?<QRCodeSVG key={`qr:${p.barcode}`} className="label-qr" value={p.barcode || '0'} marginSize={4} level="M"/>:<Barcode key={`bc:${p.barcode}`} value={p.barcode}/>)}
         {el.kind==='footer' && editable(el,el.text ?? t.footer)}
         {el.kind==='text' && editable(el,el.text ?? t.customText)}
         {el.kind==='line' && <hr className="mt-1 border-border"/>}

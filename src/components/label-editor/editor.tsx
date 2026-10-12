@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { AlignCenter, AlignLeft, AlignRight, ArrowDownToLine, ArrowLeft, ArrowRight, Barcode as BarcodeIcon, Bold, Check, CheckCheck, ChevronDown, CircleHelp, Copy, Eye, EyeOff, FileText, GripVertical, ImagePlus, Languages, Layers, LayoutTemplate, LoaderCircle, Maximize, Minus, MousePointer2, Package, Pencil, Plus, Printer, Redo2, RotateCcw, Save, ScanLine, Settings2, ShieldCheck, Sparkles, Tag, Trash2, Type, Undo2, Upload, X, ZoomIn, ZoomOut, Boxes, Link2, RefreshCw, Unlink } from 'lucide-react';
@@ -78,9 +78,9 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
   const rt=language==='ar'?{grow:'تكبير العنصر',shrink:'تصغير العنصر',width:'العرض',height:'الارتفاع',codeSize:'حجم الباركود'}:{grow:'گەورەکردنی توخم',shrink:'بچووککردنەوەی توخم',width:'پانی',height:'بەرزی',codeSize:'قەبارەی بارکۆد'};
   function changeCopies(value:number){const n=Math.max(1,Math.min(50,Math.round(value)||1));setCopies(n);setSlots(ss=>arrangeSlots(Math.min(n,8)).map((f,i)=>ss[i]?.productId?{...f,productId:ss[i].productId}:f));setSelectedSlot(0);}
   function patchSlot(patch:Partial<PrintSlot>){setSlots(ss=>ss.map((slot,i)=>i===selectedSlot?constrainSlot({...slot,...patch}):slot));}
-  const [slotDocs,setSlotDocs]=useState<Record<string,DocumentState>>({});
   function docFromSaved(p:SavedProduct):DocumentState|null{const result=productSchema.safeParse(p.data);if(!result.success||!Array.isArray(p.layout))return null;return {product:result.data,elements:p.layout as unknown as LabelElement[],theme:p.theme};}
-  function slotDoc(pid:string):DocumentState|null{const cached=slotDocs[pid];if(cached)return cached;const p=products.find(x=>x.id===pid);const doc=p?docFromSaved(p):null;if(doc)setSlotDocs(d=>({...d,[pid]:doc}));return doc;}
+  const docsById=useMemo(()=>{const m=new Map<string,DocumentState>();for(const p of products){const d=docFromSaved(p);if(d)m.set(p.id,d);}return m;},[products]);
+  function slotDoc(pid:string):DocumentState|null{return docsById.get(pid) ?? null;}
   function assignSlotProduct(pid:string){if(!pid){patchSlot({productId:undefined});return;}if(!slotDoc(pid)){toast.error(t.failure);return;}patchSlot({productId:pid});}
   function addProductSlot(pid:string){if(!pid||slots.length>=8)return;if(!slotDoc(pid)){toast.error(t.failure);return;}setSlots(ss=>[...ss,{...(arrangeSlots(ss.length+1)[ss.length] ?? {x:0,y:0,rotated:false}),productId:pid}]);setCopies(slots.length+1);setSelectedSlot(slots.length);}
   function removeSlot(){if(slots.length<=1)return;setSlots(ss=>ss.filter((_,i)=>i!==selectedSlot));setCopies(c=>Math.max(1,c-1));setSelectedSlot(i=>Math.max(0,i-1));}
@@ -161,8 +161,8 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
     const rect=e.currentTarget.querySelector('.label-paper')?.getBoundingClientRect();
     addElement(kind as ElementKind,rect?{x:(e.clientX-rect.left)/(rect.width/350),y:(e.clientY-rect.top)/(rect.height/497)}:undefined);
   }
-  function newProduct(){const next={product:{...sampleProduct,name:'',model:'',color:'',size:'',specs:'',warranty:'',barcode:'',store:document.product.store,image:''},elements:defaultElements,theme:'mint'};update(next);setProductId(null);setInventoryId(null);setSelected('name');persistDraft(next,null,null);navigate({to:'/'});}
-  function openProduct(p:SavedProduct,stay=false){const result=productSchema.safeParse(p.data);if(!result.success || !Array.isArray(p.layout)){toast.error(t.failure);return;}const next={product:result.data,elements:p.layout as unknown as LabelElement[],theme:p.theme};setDocument(next);setProductId(p.id);setInventoryId(p.inventory_item_id ?? null);setHistory([]);setFuture([]);setDirty(false);persistDraft(next,p.id,p.inventory_item_id ?? null);if(!stay)navigate({to:'/'});}
+  function newProduct(){const next={product:{...sampleProduct,name:'',model:'',color:'',size:'',specs:'',warranty:'',barcode:'',store:document.product.store,image:''},elements:defaultElements,theme:'mint'};update(next);setProductId(null);setInventoryId(null);setSelected('name');setSlots(ss=>ss.map(s=>({...s,productId:undefined})));persistDraft(next,null,null);navigate({to:'/'});}
+  function openProduct(p:SavedProduct,stay=false){const result=productSchema.safeParse(p.data);if(!result.success || !Array.isArray(p.layout)){toast.error(t.failure);return;}const next={product:result.data,elements:p.layout as unknown as LabelElement[],theme:p.theme};setDocument(next);if(p.id!==productId){setSlots(ss=>ss.map(s=>({...s,productId:undefined})));setSelectedSlot(0);}setProductId(p.id);setInventoryId(p.inventory_item_id ?? null);setHistory([]);setFuture([]);setDirty(false);persistDraft(next,p.id,p.inventory_item_id ?? null);if(!stay)navigate({to:'/'});}
   function applyItem(item:InventoryItem){const product=productFromItem(item,document.product);update({...document,product,elements:fitBarcodeElement(document.elements,document.product.codeFormat,product.codeFormat)});setInventoryId(item.id);setLinkedItem(item);setPickerOpen(false);}
   async function createItem(){
     const p=document.product;
@@ -181,9 +181,9 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
     const payload:Database['public']['Tables']['label_products']['Insert']={user_id:user.id,name:document.product.name,data:document.product as unknown as Json,layout:document.elements as unknown as Json,theme:document.theme,updated_at:new Date().toISOString()};
     if(await hasLinkColumn())payload.inventory_item_id=inventoryId;
     const {data,error}=mode==='update'?await supabase.from('label_products').update(payload).eq('id',productId!).select().single():await supabase.from('label_products').insert(payload).select().single();
-    setBusy(false);if(error){toast.error(t.failure);return;}setProductId(data.id);setDirty(false);toast.success(mode==='update'?t.updatedToast:t.savedToast);
+    setBusy(false);if(error){toast.error(t.failure);return;}setProductId(data.id);setDirty(false);setProducts(ps=>[data as SavedProduct,...ps.filter(x=>x.id!==data.id)]);toast.success(mode==='update'?t.updatedToast:t.savedToast);
   }
-  async function removeProduct(id:string){if(!window.confirm(language==='ar'?'هل تريد حذف هذا المنتج؟':'ئایا ئەم بەرهەمە دەسڕیتەوە؟'))return;const {error}=await supabase.from('label_products').delete().eq('id',id);if(error)toast.error(t.failure);else setProducts(p=>p.filter(x=>x.id!==id));}
+  async function removeProduct(id:string){if(!window.confirm(language==='ar'?'هل تريد حذف هذا المنتج؟':'ئایا ئەم بەرهەمە دەسڕیتەوە؟'))return;const {error}=await supabase.from('label_products').delete().eq('id',id);if(error)toast.error(t.failure);else{setProducts(p=>p.filter(x=>x.id!==id));setSlots(ss=>ss.map(s=>s.productId===id?{...s,productId:undefined}:s));}}
   function applyTemplate(key:string){setTemplate(key);update({...document,elements:defaultElements.map(el=>key==='compact'?{...el,visible:el.kind!=='photo',y:el.kind==='details'?150:el.kind==='specs'?205:el.kind==='warranty'?280:el.kind==='barcode'?335:el.y}:el)});}
   function applyCustomTemplate(tpl:SavedTemplate){setTemplate('');update({...document,elements:tpl.elements as unknown as LabelElement[],theme:tpl.theme,product:{...document.product,store:tpl.store||document.product.store}});}
   async function saveTemplate(name:string){
@@ -204,7 +204,7 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
   function doPrint(){if(paper==='a4' && slotsOverlap(slots)){toast.error(pt.overlap);return;}if(!productSchema.safeParse(document.product).success){toast.error(t.invalid);return;}setSelected('');window.print();}
   const field=(key:keyof Product,label:string,ltr=false,required=false)=><label className="field"><span className="field-label">{label}{required&&<span className="required">*</span>}</span><input aria-label={label} maxLength={key==='barcode'?(document.product.codeFormat==='qr'?500:40):120} className="field-input" dir={ltr?'ltr':'rtl'} value={document.product[key]} onChange={e=>setField(key,e.target.value)} placeholder={label}/></label>;
   const layerName=(kind:ElementKind)=>({store:t.store,name:t.name,model:t.model,photo:t.photo,details:`${t.color} / ${t.size}`,specs:t.specs,warranty:t.warranty,barcode:t.barcode,footer:t.text,text:t.text,line:t.line})[kind];
-  const slotDocuments=slots.map(s=>s.productId?(slotDocs[s.productId] ?? document):document);
+  const slotDocuments=slots.map(s=>s.productId?(docsById.get(s.productId) ?? document):document);
   const templatePicker=<div className="template-grid">{([['classic',t.standard],['compact',t.compact]] as const).map(([key,label])=><Button key={key} variant="ghost" className={`template-choice ${template===key?'active':''}`} onClick={()=>applyTemplate(key)}><span className="template-mini"><i/><i/><b/><i/><i/></span>{label}</Button>)}</div>;
 
   return <AppShell active={view}>
