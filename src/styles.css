@@ -576,3 +576,8 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
 .unlinked-info b { display:block; font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .unlinked-info span { font-size:.7rem; color:var(--muted-foreground); }
 @media (max-width:620px) { .unlinked-card { min-width:220px; } }
+
+.fs-row { display:flex; align-items:center; gap:10px; margin-top:6px; }
+.fs-row > label { font-weight:600; color:var(--muted-foreground); flex:none; }
+.fs-slider { flex:1; min-width:0; accent-color:var(--primary); height:26px; cursor:pointer; }
+.fs-row .field-input { text-align:center; flex:none; }
