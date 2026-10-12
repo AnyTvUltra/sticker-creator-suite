@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from '@/components/ui/sonner';
+import { SessionProvider } from '@/components/app/session';
 import '@fontsource-variable/noto-sans-arabic';
 
 function NotFoundComponent() {
@@ -120,8 +121,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <SessionProvider>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </SessionProvider>
       <Toaster position="bottom-center" richColors />
     </QueryClientProvider>
   );

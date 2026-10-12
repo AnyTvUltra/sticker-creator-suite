@@ -1,0 +1,28 @@
+{
+  "name": "s3r-sticker-creator",
+  "productName": "S3R Sticker Creator",
+  "version": "1.0.0",
+  "description": "S3R Sticker Creator",
+  "author": "S3R",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable nsis"
+  },
+  "trustedDependencies": ["electron"],
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.s3r.stickercreator",
+    "productName": "S3R Sticker Creator",
+    "asar": false,
+    "directories": { "output": "release" },
+    "files": ["main.cjs", "env.json", "server/**/*", "package.json"],
+    "win": { "target": ["portable", "nsis"] },
+    "portable": { "artifactName": "S3R-Sticker-Creator-Portable.exe" },
+    "nsis": { "artifactName": "S3R-Sticker-Creator-Setup.exe", "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}

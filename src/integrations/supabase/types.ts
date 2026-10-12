@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           data: Json
           id: string
+          inventory_item_id: string | null
           layout: Json
           name: string
           theme: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           data?: Json
           id?: string
+          inventory_item_id?: string | null
           layout?: Json
           name: string
           theme?: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           data?: Json
           id?: string
+          inventory_item_id?: string | null
           layout?: Json
           name?: string
           theme?: string
@@ -44,12 +47,184 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          is_admin: boolean
+          active: boolean
+          permissions: string[]
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string
+          is_admin?: boolean
+          active?: boolean
+          permissions?: string[]
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          is_admin?: boolean
+          active?: boolean
+          permissions?: string[]
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          barcode: string
+          category: string
+          color: string
+          cost: number
+          created_at: string
+          created_by: string | null
+          id: string
+          image: string
+          location: string
+          min_quantity: number
+          model: string
+          name: string
+          notes: string
+          price: number
+          quantity: number
+          size: string
+          sku: string
+          specs: string
+          updated_at: string
+          warranty: string
+        }
+        Insert: {
+          barcode?: string
+          category?: string
+          color?: string
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image?: string
+          location?: string
+          min_quantity?: number
+          model?: string
+          name: string
+          notes?: string
+          price?: number
+          quantity?: number
+          size?: string
+          sku?: string
+          specs?: string
+          updated_at?: string
+          warranty?: string
+        }
+        Update: {
+          barcode?: string
+          category?: string
+          color?: string
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image?: string
+          location?: string
+          min_quantity?: number
+          model?: string
+          name?: string
+          notes?: string
+          price?: number
+          quantity?: number
+          size?: string
+          sku?: string
+          specs?: string
+          updated_at?: string
+          warranty?: string
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          item_id: string
+          note: string
+          quantity_after: number
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          item_id: string
+          note?: string
+          quantity_after: number
+          user_id?: string | null
+          username?: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          item_id?: string
+          note?: string
+          quantity_after?: number
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_list_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          username: string
+          display_name: string
+          is_admin: boolean
+          active: boolean
+          permissions: string[]
+          created_at: string
+          last_sign_in_at: string | null
+        }[]
+      }
+      admin_create_user: {
+        Args: { p_username: string; p_password: string; p_display_name: string; p_is_admin: boolean; p_permissions: string[] }
+        Returns: string
+      }
+      admin_update_user: {
+        Args: { p_user_id: string; p_display_name: string; p_is_admin: boolean; p_active: boolean; p_permissions: string[] }
+        Returns: undefined
+      }
+      admin_set_password: {
+        Args: { p_user_id: string; p_password: string }
+        Returns: undefined
+      }
+      admin_delete_user: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      adjust_stock: {
+        Args: { p_item: string; p_delta: number; p_note?: string }
+        Returns: number
+      }
+      has_permission: {
+        Args: { perm: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
