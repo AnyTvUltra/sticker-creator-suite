@@ -32,6 +32,15 @@ const ar = {
   you: 'أنت', permCount: 'صلاحية', allPerms: 'كل الصلاحيات', confirmDeleteUser: 'هل تريد حذف هذا الحساب نهائيًا؟', created: 'تم إنشاء الحساب',
   errUsernameTaken: 'اسم المستخدم مستخدم مسبقًا', errInvalidUsername: 'اسم المستخدم: أحرف إنجليزية وأرقام و . _ - فقط (2 حرف على الأقل)', errWeakPassword: 'الرمز يجب أن يكون 6 أحرف على الأقل',
   errSelf: 'لا يمكنك إلغاء صلاحية المدير أو تعطيل أو حذف حسابك', errNotAllowed: 'ليست لديك صلاحية',
+  // orders
+  orders: 'الطلبات', ordersTitle: 'طلبات الزبائن', ordersSubtitle: 'أنشئ طلبًا باسم الزبون وأضف الأصناف — يصل الإشعار للمدير فورًا.',
+  newOrder: 'طلب جديد', customerName: 'اسم الزبون', customerRequired: 'اسم الزبون مطلوب', orderNotes: 'ملاحظات الطلب (اختياري)',
+  cart: 'الطلب', cartEmpty: 'لا أصناف بعد — انقر على منتج لإضافته', addToOrder: 'إضافة', submitOrder: 'إرسال الطلب', orderTotal: 'المجموع',
+  orderItems: 'الأصناف', orderBy: 'بواسطة', orderStatus: 'الحالة', statusNew: 'جديد', statusPreparing: 'قيد التجهيز', statusDone: 'مكتمل', statusCancelled: 'ملغي',
+  startPreparing: 'بدء التجهيز', markDone: 'إكمال', cancelOrder: 'إلغاء الطلب', confirmDeleteOrder: 'هل تريد حذف هذا الطلب نهائيًا؟',
+  orderSaved: 'أُرسل الطلب', orderUpdated: 'حُدّث الطلب', emptyOrders: 'لا توجد طلبات بعد', emptyOrdersHint: 'أنشئ أول طلب لزبونك من الزر أعلاه.',
+  allOrders: 'الكل', orderNo: 'طلب', newOrderToast: 'طلب جديد وصل', tapToAdd: 'انقر لإضافته', each: 'للقطعة', itemsCount: 'صنف',
+  searchOrderProducts: 'ابحث عن صنف بالاسم أو الموديل أو الباركود...', editOrder: 'تعديل الطلب', outOfStockShort: 'نفد المخزون',
 };
 
 const ckb: typeof ar = {
@@ -64,6 +73,15 @@ const ckb: typeof ar = {
   you: 'تۆ', permCount: 'دەسەڵات', allPerms: 'هەموو دەسەڵاتەکان', confirmDeleteUser: 'ئایا دەتەوێت ئەم هەژمارە بە یەکجاری بسڕیتەوە؟', created: 'هەژمار دروستکرا',
   errUsernameTaken: 'ئەم ناوی بەکارهێنەرە پێشتر بەکارهاتووە', errInvalidUsername: 'ناوی بەکارهێنەر: تەنها پیتی ئینگلیزی، ژمارە و . _ - (لانیکەم 2 پیت)', errWeakPassword: 'وشەی نهێنی دەبێت لانیکەم 6 پیت بێت',
   errSelf: 'ناتوانیت دەسەڵاتی بەڕێوەبەر لە خۆت بسەنیتەوە یان هەژمارەکەت ناچالاک بکەیت یان بیسڕیتەوە', errNotAllowed: 'دەسەڵاتت نییە',
+  // orders
+  orders: 'داواکارییەکان', ordersTitle: 'داواکارییەکانی کڕیار', ordersSubtitle: 'داواکارییەکی نوێ بە ناوی کڕیار دروست بکە و کاڵا زیاد بکە — بەڕێوەبەر دەستبەجێ ئاگادار دەبێتەوە.',
+  newOrder: 'داواکاری نوێ', customerName: 'ناوی کڕیار', customerRequired: 'ناوی کڕیار پێویستە', orderNotes: 'تێبینی داواکاری (ئارەزوومەندانە)',
+  cart: 'داواکاری', cartEmpty: 'هێشتا کاڵا نییە — کرتە لە کاڵایەک بکە بۆ زیادکردن', addToOrder: 'زیادکردن', submitOrder: 'ناردنی داواکاری', orderTotal: 'کۆی گشتی',
+  orderItems: 'کاڵاکان', orderBy: 'لەلایەن', orderStatus: 'دۆخ', statusNew: 'نوێ', statusPreparing: 'ئامادەدەکرێت', statusDone: 'تەواوبوو', statusCancelled: 'هەڵوەشایەوە',
+  startPreparing: 'دەستپێکردنی ئامادەکردن', markDone: 'تەواوکردن', cancelOrder: 'هەڵوەشاندنەوەی داواکاری', confirmDeleteOrder: 'دڵنیایت لە سڕینەوەی ئەم داواکارییە بە یەکجاری؟',
+  orderSaved: 'داواکاری نێردرا', orderUpdated: 'داواکاری نوێکرایەوە', emptyOrders: 'هێشتا داواکاری نییە', emptyOrdersHint: 'یەکەم داواکاری بۆ کڕیارەکەت لە دوگمەی سەرەوە دروست بکە.',
+  allOrders: 'هەموو', orderNo: 'داواکاری', newOrderToast: 'داواکارییەکی نوێ گەیشت', tapToAdd: 'کرتە بکە بۆ زیادکردن', each: 'بۆ هەر پارچەیەک', itemsCount: 'کاڵا',
+  searchOrderProducts: 'بە ناو، مۆدێل یان بارکۆد بگەڕێ...', editOrder: 'دەستکاریکردنی داواکاری', outOfStockShort: 'کۆگا تەواوبوو',
 };
 
 export const ui = { ar, ckb } satisfies Record<Language, typeof ar>;

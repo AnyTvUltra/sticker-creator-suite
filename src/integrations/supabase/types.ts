@@ -179,6 +179,69 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          id: string
+          user_id: string
+          username: string
+          customer_name: string
+          status: 'new' | 'preparing' | 'done' | 'cancelled'
+          notes: string
+          total: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          username?: string
+          customer_name: string
+          status?: 'new' | 'preparing' | 'done' | 'cancelled'
+          notes?: string
+          total?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          username?: string
+          customer_name?: string
+          status?: 'new' | 'preparing' | 'done' | 'cancelled'
+          notes?: string
+          total?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          id: string
+          order_id: string
+          inventory_item_id: string | null
+          name: string
+          quantity: number
+          price: number
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          inventory_item_id?: string | null
+          name?: string
+          quantity?: number
+          price?: number
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          inventory_item_id?: string | null
+          name?: string
+          quantity?: number
+          price?: number
+        }
+        Relationships: []
+      }
       inventory_movements: {
         Row: {
           created_at: string
