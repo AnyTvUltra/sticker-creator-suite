@@ -47,6 +47,39 @@ export type Database = {
         }
         Relationships: []
       }
+      label_templates: {
+        Row: {
+          created_at: string
+          elements: Json
+          id: string
+          name: string
+          store: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          elements?: Json
+          id?: string
+          name?: string
+          store?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          elements?: Json
+          id?: string
+          name?: string
+          store?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
