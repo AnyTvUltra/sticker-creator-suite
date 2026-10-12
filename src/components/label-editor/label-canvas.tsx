@@ -32,7 +32,7 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   useEffect(() => () => stopDrag.current?.(), []);
   // Track the drag on window so fast moves or releasing outside the element never leave a drag "stuck".
   function start(e: PointerEvent<HTMLDivElement>, el: LabelElement) {
-    if (printing || e.button !== 0 || editing?.startsWith(`${el.id}:`)) return;
+    if (printing || e.button !== 0) return;
     e.stopPropagation(); onSelect?.(el.id);
     stopDrag.current?.();
     const startX = e.clientX, startY = e.clientY, scale = (paperRef.current?.getBoundingClientRect().width || 350) / 350;
@@ -69,7 +69,7 @@ export function LabelCanvas({ document, language, selected, onSelect, onMove, on
   }
   return <div ref={paperRef} className={`label-paper theme-${theme}`} dir="rtl" onClick={() => !printing && onSelect?.('')}>
     <div className="label-stripe" />
-    {elements.filter(el=>el.visible).map(el=><div key={el.id} data-element={el.id} aria-label={el.kind} className={`label-element ${selected===el.id && !printing ? 'is-selected':''}`} style={{ left:el.x,top:el.y,width:el.width,height:el.height } as CSSProperties} onDoubleClick={()=>{if(!printing && onTextChange && !['photo','line','barcode','details'].includes(el.kind)) {onSelect?.(el.id);setEditing(`${el.id}:${['store','name','model','specs','warranty'].includes(el.kind)?el.kind:'text'}`);}}} onPointerDown={e=>start(e,el)} onDragStart={e=>e.preventDefault()} onClick={e=>e.stopPropagation()}>
+    {elements.filter(el=>el.visible).map(el=><div key={el.id} data-element={el.id} aria-label={el.kind} className={`label-element ${selected===el.id && !printing ? 'is-selected':''}`} style={{ left:el.x,top:el.y,width:el.width,height:el.height } as CSSProperties} onDoubleClick={()=>{if(!printing && onTextChange && !['photo','line','barcode','details'].includes(el.kind)) {onSelect?.(el.id);setEditing(`${el.id}:${['store','name','model','specs','warranty'].includes(el.kind)?el.kind:'text'}`);}}} onPointerDown={e=>start(e,el)} onDragStart={e=>e.preventDefault()} onClick={e=>{e.stopPropagation();if(!printing)onSelect?.(el.id);}}>
       <div className={`label-${el.kind} ${el.textColor?`ink-${el.textColor}`:''}`} style={{ ...(el.fontSize ? { fontSize:el.fontSize } : {}), fontWeight:el.fontWeight ?? (el.bold ? 750:undefined), ...(el.align ? {textAlign:el.align}:{}), height:'100%' }}>
         {el.kind==='store' && <><Store size={13}/>{editable(el,p.store,'store')}</>}
         {el.kind==='name' && editable(el,p.name,'name')}
