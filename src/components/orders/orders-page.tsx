@@ -9,8 +9,10 @@ import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
 import type { InventoryItem } from '@/lib/inventory-link';
+import type { Product } from '@/components/label-editor/model';
 
 type Order = Database['public']['Tables']['orders']['Row'];
+type SavedProd = Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'name' | 'data' | 'theme'> & { inventory_item_id?: string | null };
 type OrderItem = Database['public']['Tables']['order_items']['Row'];
 type Status = Order['status'];
 type CartLine = { key: string; itemId: string | null; name: string; price: number; qty: number };
@@ -26,6 +28,7 @@ export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [lines, setLines] = useState<Record<string, OrderItem[]>>({});
   const [products, setProducts] = useState<InventoryItem[]>([]);
+  const [savedProds, setSavedProds] = useState<SavedProd[]>([]);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [filter, setFilter] = useState<'all' | Status>('all');
@@ -55,10 +58,16 @@ export function OrdersPage() {
   useEffect(() => { setLoading(true); void load(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Product catalogue for the order composer (requires inventory.view).
+  // Product catalogue for the order composer: inventory items plus saved products not linked to one.
   useEffect(() => {
-    if (!composer || !can('inventory.view')) return;
-    void supabase.from('inventory_items').select('*').order('name').limit(400).then(({ data }) => setProducts(data ?? []));
+    if (!composer) return;
+    if (can('inventory.view')) void supabase.from('inventory_items').select('*').order('name').limit(400).then(({ data }) => setProducts(data ?? []));
+    void (async () => {
+      const { data, error } = await supabase.from('label_products').select('id,name,data,theme,inventory_item_id').order('updated_at', { ascending: false }).limit(200);
+      if (!error) { setSavedProds((data ?? []) as SavedProd[]); return; }
+      const res = await supabase.from('label_products').select('id,name,data,theme').order('updated_at', { ascending: false }).limit(200);
+      setSavedProds((res.data ?? []).map(p => ({ ...p, inventory_item_id: null })) as SavedProd[]);
+    })();
   }, [composer, can]);
 
   const filtered = useMemo(() => filter === 'all' ? orders : orders.filter(o => o.status === filter), [orders, filter]);
@@ -67,6 +76,16 @@ export function OrdersPage() {
     if (!q) return products;
     return products.filter(p => [p.name, p.model, p.barcode, p.sku, p.category].some(v => v?.toLowerCase().includes(q)));
   }, [products, prodSearch]);
+  const savedFiltered = useMemo(() => {
+    const linked = new Set(products.map(p => p.id));
+    const q = prodSearch.trim().toLowerCase();
+    return savedProds.filter(p => {
+      if (p.inventory_item_id && linked.has(p.inventory_item_id)) return false;
+      if (!q) return true;
+      const d = p.data as Partial<Product>;
+      return [p.name, d.model, d.barcode].some(v => typeof v === 'string' && v.toLowerCase().includes(q));
+    });
+  }, [savedProds, products, prodSearch]);
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
   const counts = useMemo(() => orders.reduce((m, o) => ({ ...m, [o.status]: (m[o.status] ?? 0) + 1 }), {} as Record<string, number>), [orders]);
 
@@ -89,7 +108,13 @@ export function OrdersPage() {
       return [...c, { key: `new-${p.id}`, itemId: p.id, name: p.name, price: Number(p.price), qty: 1 }];
     });
   }
+  function addSavedLine(p: SavedProd) {
+    const d = p.data as Partial<Product>;
+    const name = p.name || d.name || '';
+    setCart(c => [...c, { key: `prod-${p.id}-${Date.now()}`, itemId: null, name, price: 0, qty: 1 }]);
+  }
   const setQty = (key: string, qty: number) => setCart(c => qty <= 0 ? c.filter(l => l.key !== key) : c.map(l => l.key === key ? { ...l, qty } : l));
+  const setPrice = (key: string, price: number) => setCart(c => c.map(l => l.key === key ? { ...l, price: Math.max(0, price) } : l));
   const removeLine = (key: string) => {
     const line = cart.find(l => l.key === key);
     if (line && !key.startsWith('new-')) setRemovedIds(r => [...r, line.key]);
@@ -197,7 +222,13 @@ export function OrdersPage() {
                 <span className="order-prod-price" dir="ltr">{fmt(Number(p.price))}</span>
                 {p.quantity <= 0 && <span className="order-prod-out">{t.outOfStockShort}</span>}
               </button>)}
-              {composer && !prodFiltered.length && <p className="order-prod-empty">{t.noResults}</p>}
+              {savedFiltered.map(p => { const d = p.data as Partial<Product>; return <button key={p.id} type="button" className="order-prod saved-prod" onClick={() => addSavedLine(p)} title={t.tapToAdd}>
+                {d.image ? <img src={d.image} alt={p.name}/> : <span className="order-prod-ph"><ReceiptText size={20}/></span>}
+                <span className="order-prod-kind">{t.savedProductBadge}</span>
+                <span className="order-prod-name">{p.name}</span>
+                <span className="order-prod-price" dir="ltr">—</span>
+              </button>; })}
+              {composer && !prodFiltered.length && !savedFiltered.length && <p className="order-prod-empty">{t.noResults}</p>}
             </div>
           </div>
           <div className="order-ticket">
@@ -207,6 +238,7 @@ export function OrdersPage() {
               {cart.map(l => <div key={l.key} className="ticket-line">
                 <span className="ticket-name">{l.name}</span>
                 <div className="ticket-qty"><button type="button" onClick={() => setQty(l.key, l.qty - 1)}><Minus size={12}/></button><b dir="ltr">{l.qty}</b><button type="button" onClick={() => setQty(l.key, l.qty + 1)}><Plus size={12}/></button></div>
+                <input className="ticket-price" dir="ltr" type="number" min={0} step="any" value={l.price} onChange={e => setPrice(l.key, Number(e.target.value) || 0)} aria-label={t.price} title={t.price}/>
                 <span className="ticket-sum" dir="ltr">{fmt(l.price * l.qty)}</span>
                 <button type="button" className="ticket-del" onClick={() => removeLine(l.key)} aria-label={t.delete}><X size={13}/></button>
               </div>)}

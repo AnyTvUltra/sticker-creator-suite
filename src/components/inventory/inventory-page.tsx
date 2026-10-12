@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { productSchema, type LabelElement } from '@/components/label-editor/model';
+import { productSchema, type LabelElement, type Product } from '@/components/label-editor/model';
 import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
@@ -57,6 +57,7 @@ export function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
+  const [savedProds, setSavedProds] = useState<Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'name' | 'data'>[]>([]);
   const [category, setCategory] = useState('');
   const [stock, setStock] = useState<StockFilter>('all');
   const [sort, setSort] = useState<Sort>('newest');
@@ -81,6 +82,15 @@ export function InventoryPage() {
       const map: Record<string, SavedLabel> = {};
       for (const l of data ?? []) if (l.inventory_item_id && !map[l.inventory_item_id]) map[l.inventory_item_id] = l;
       setLabels(map);
+    })();
+  }, [can]);
+  // Saved products not yet linked to an inventory item — offer one-click item creation.
+  useEffect(() => {
+    if (!can('inventory.create')) return;
+    void (async () => {
+      if (!(await hasLinkColumn())) return;
+      const { data } = await supabase.from('label_products').select('id,name,data').is('inventory_item_id', null).order('updated_at', { ascending: false }).limit(24);
+      setSavedProds(data ?? []);
     })();
   }, [can]);
 
@@ -111,6 +121,17 @@ export function InventoryPage() {
     if (error) { toast.error(rpcError(error.message, t)); return false; }
     setItems(list => list.map(i => i.id === item.id ? { ...i, quantity: data, updated_at: new Date().toISOString() } : i));
     return true;
+  }
+
+  async function createItemFromProduct(p: Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'name' | 'data'>) {
+    const d = p.data as Partial<Product>;
+    const payload = { name: p.name || d.name || '', model: d.model ?? '', barcode: d.barcode ?? '', image: d.image ?? '', color: d.color ?? '', size: d.size ?? '', specs: d.specs ?? '', warranty: d.warranty ?? '' };
+    const { data, error } = await supabase.from('inventory_items').insert(payload).select('*').single();
+    if (error) { toast.error(rpcError(error.message, t)); return; }
+    await supabase.from('label_products').update({ inventory_item_id: data.id }).eq('id', p.id);
+    setItems(list => [{ ...data, price: Number(data.price), cost: Number(data.cost) }, ...list]);
+    setSavedProds(list => list.filter(x => x.id !== p.id));
+    toast.success(t.createdLinked);
   }
 
   async function remove(item: Item) {
@@ -157,6 +178,15 @@ export function InventoryPage() {
         <div className="inv-chips">{(['all', 'in', 'low', 'out'] as const).map(s => <button key={s} type="button" className={`inv-chip ${stock === s ? 'active' : ''}`} onClick={() => setStock(s)}>{{ all: t.allStock, in: t.inStock, low: t.lowStock, out: t.outStock }[s]}</button>)}</div>
         <select className="field-input" value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="sort"><option value="newest">{t.sortNewest}</option><option value="name">{t.sortName}</option><option value="qty">{t.sortQtyAsc}</option><option value="price">{t.sortPriceDesc}</option></select>
       </section>
+
+      {savedProds.length > 0 && <section className="unlinked-prods">
+        <h3><Tag size={15}/>{t.unlinkedProducts}<span className="unlinked-hint">{t.unlinkedProductsHint}</span></h3>
+        <div className="unlinked-row">{savedProds.map(p => { const d = p.data as Partial<Product>; return <div key={p.id} className="unlinked-card">
+          {d.image ? <img src={d.image} alt={p.name}/> : <span className="unlinked-ph"><Tag size={18}/></span>}
+          <div className="unlinked-info"><b>{p.name}</b><span dir="ltr">{d.model || d.barcode || '—'}</span></div>
+          <Button size="sm" variant="outline" onClick={() => void createItemFromProduct(p)}><Plus size={14}/>{t.createInInventory}</Button>
+        </div>; })}</div>
+      </section>}
 
       {loading ? <div className="grid place-items-center py-24 text-muted-foreground"><LoaderCircle className="animate-spin"/></div>
         : items.length === 0 ? <div className="empty-library"><Package/><h2>{t.emptyInv}</h2><p>{t.emptyInvHint}</p>{can('inventory.create') && <Button className="mt-5" onClick={() => setForm({ id: null, data: { ...emptyForm } })}><Plus/>{t.addItem}</Button>}</div>

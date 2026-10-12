@@ -49,6 +49,8 @@ const ar = {
   cameraDenied: 'تعذّر الوصول للكاميرا — امنح الإذن ثم أعد المحاولة', cameraError: 'لا توجد كاميرا أو المتصفح لا يدعمها',
   fromInventory: 'صنف من المخزن', fromProducts: 'منتج محفوظ (ملصق)', printLabel: 'طباعة ملصق', openInEditor: 'فتح في المحرر',
   scanFoundShort: 'تم العثور على الرمز',
+  savedProductBadge: 'منتج', unlinkedProducts: 'منتجات بلا صنف في المخزن', unlinkedProductsHint: 'أنشئ لها صنفًا لتظهر في المخزن والطلبات والمسح',
+  createProductWithCode: 'إنشاء منتج بهذا الرمز',
 };
 
 const ckb: typeof ar = {
@@ -98,6 +100,8 @@ const ckb: typeof ar = {
   cameraDenied: 'نەتوانرا بگەڕێین بە کامێراوە — مۆڵەت بدە و دووبارە هەوڵبدەرەوە', cameraError: 'کامێرایەک نییە یان وێبگەڕەکە پشتیوانی ناکات',
   fromInventory: 'کاڵا لە کۆگا', fromProducts: 'بەرهەمی پاشەکەوتکراو (لیبڵ)', printLabel: 'چاپکردنی لیبڵ', openInEditor: 'کردنەوە لە ئێدیتر',
   scanFoundShort: 'کۆدەکە دۆزرایەوە',
+  savedProductBadge: 'بەرهەم', unlinkedProducts: 'بەرهەمی بێ کاڵا لە کۆگا', unlinkedProductsHint: 'کاڵایەکیان بۆ دروست بکە لە کۆگا و داواکاری و سکاندا دەردەکەون',
+  createProductWithCode: 'دروستکردنی بەرهەم بەم کۆدە',
 };
 
 export const ui = { ar, ckb } satisfies Record<Language, typeof ar>;

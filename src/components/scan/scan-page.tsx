@@ -8,8 +8,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
-import type { LabelElement, Product } from '@/components/label-editor/model';
-import { DRAFT_INVENTORY_ID_KEY, DRAFT_KEY, DRAFT_PRODUCT_ID_KEY, hasLinkColumn, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
+import { defaultElements, sampleProduct, type LabelElement, type Product } from '@/components/label-editor/model';
+import { DRAFT_INVENTORY_ID_KEY, DRAFT_KEY, DRAFT_PRODUCT_ID_KEY, fitBarcodeElement, hasLinkColumn, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
 import { BarcodeScanner, isCameraDenied } from './barcode-scanner';
 
 type SavedLabel = Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'name' | 'data' | 'layout' | 'theme'>;
@@ -86,6 +86,16 @@ export function ScanPage() {
     navigate({ to: '/' });
   }
 
+  function createProduct(text: string) {
+    const code128 = /^[\x20-\x7E]{1,40}$/.test(text);
+    const product = { ...sampleProduct, barcode: text, codeFormat: code128 ? 'code128' as const : 'qr' as const, name: '', model: '', image: '' };
+    const draft = { product, elements: fitBarcodeElement(defaultElements, 'code128', product.codeFormat), theme: 'mint' };
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    sessionStorage.removeItem(DRAFT_PRODUCT_ID_KEY);
+    sessionStorage.removeItem(DRAFT_INVENTORY_ID_KEY);
+    navigate({ to: '/' });
+  }
+
   function openSavedLabel(prod: SavedLabel) {
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ product: prod.data, elements: prod.layout, theme: prod.theme }));
     sessionStorage.setItem(DRAFT_PRODUCT_ID_KEY, prod.id);
@@ -124,7 +134,7 @@ export function ScanPage() {
             <p className="scan-usb-hint">{u.scanUsbHint}</p>
           </form>
           {busy && <div className="scan-status"><LoaderCircle className="animate-spin"/>{u.searching}</div>}
-          {missed && !busy && <div className="scan-miss"><AlertTriangle size={18}/><div><b>{u.scanNotFound}</b><p dir="ltr">{missed}</p></div></div>}
+          {missed && !busy && <div className="scan-miss"><AlertTriangle size={18}/><div><b>{u.scanNotFound}</b><p dir="ltr">{missed}</p>{can('labels.design') && <Button size="sm" variant="outline" className="mt-2" onClick={() => createProduct(missed)}><Pencil/>{u.createProductWithCode}</Button>}</div></div>}
         </div>
       </section>
 
