@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Barcode as BarcodeIcon, Boxes, History, ImagePlus, Layers, LoaderCircle, MapPin, Minus, Package, Pencil, Plus, Search, Tag, Trash2, Wallet, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Barcode as BarcodeIcon, Boxes, History, ImagePlus, Layers, LoaderCircle, MapPin, Minus, Package, Pencil, Plus, ScanLine, Search, Tag, Trash2, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +11,7 @@ import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
 import { hasLinkColumn, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
+import { BarcodeScanner, isCameraDenied } from '@/components/scan/barcode-scanner';
 
 type Item = InventoryItem;
 type SavedLabel = Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'data' | 'layout' | 'theme' | 'inventory_item_id'>;
@@ -55,6 +56,7 @@ export function InventoryPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
   const [category, setCategory] = useState('');
   const [stock, setStock] = useState<StockFilter>('all');
   const [sort, setSort] = useState<Sort>('newest');
@@ -150,7 +152,7 @@ export function InventoryPage() {
       <section className="inv-stats">{statCards.map(([icon, label, value, tone]) => <div key={label} className={`inv-stat ${tone}`}><div className="inv-stat-icon">{icon}</div><div><span>{label}</span><b dir="ltr">{value}</b></div></div>)}</section>
 
       <section className="inv-toolbar">
-        <div className="inv-search"><Search size={16}/><input className="field-input" autoFocus value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') openSearchMatch(); }} placeholder={t.searchItems} aria-label={t.searchItems}/>{search && <button type="button" aria-label="clear" onClick={() => setSearch('')}><X size={14}/></button>}</div>
+        <div className="inv-search"><Search size={16}/><input className="field-input" autoFocus value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') openSearchMatch(); }} placeholder={t.searchItems} aria-label={t.searchItems}/>{search && <button type="button" aria-label="clear" onClick={() => setSearch('')}><X size={14}/></button>}<button type="button" className="inv-scan-btn" aria-label={t.scan} title={t.scan} onClick={() => setScanOpen(true)}><ScanLine size={16}/></button></div>
         <select className="field-input" value={category} onChange={e => setCategory(e.target.value)} aria-label={t.category}><option value="">{t.allCategories}</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select>
         <div className="inv-chips">{(['all', 'in', 'low', 'out'] as const).map(s => <button key={s} type="button" className={`inv-chip ${stock === s ? 'active' : ''}`} onClick={() => setStock(s)}>{{ all: t.allStock, in: t.inStock, low: t.lowStock, out: t.outStock }[s]}</button>)}</div>
         <select className="field-input" value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="sort"><option value="newest">{t.sortNewest}</option><option value="name">{t.sortName}</option><option value="qty">{t.sortQtyAsc}</option><option value="price">{t.sortPriceDesc}</option></select>
@@ -184,6 +186,11 @@ export function InventoryPage() {
 
     {form && <ItemFormDialog key={form.id ?? 'new'} initial={form} categories={categories} t={t} onClose={() => setForm(null)} onSaved={item => { setItems(list => form.id ? list.map(i => i.id === item.id ? item : i) : [item, ...list]); setForm(null); }}/>}
     {detail && <ItemDetailDialog item={detail} t={t} hasLabel={!!labels[detail.id]} onClose={() => setDetailId(null)} onAdjust={adjust} onEdit={() => { setForm({ id: detail.id, data: { ...detail } }); setDetailId(null); }} onLabel={() => makeLabel(detail)} onDelete={() => remove(detail)}/>}
+    {scanOpen && <Dialog open onOpenChange={open => { if (!open) setScanOpen(false); }}>
+      <DialogContent dir="rtl" className="scan-dialog"><DialogHeader><DialogTitle>{t.scanTitle}</DialogTitle><DialogDescription>{t.scanHint}</DialogDescription></DialogHeader>
+        <BarcodeScanner onResult={text => { setSearch(text); setScanOpen(false); toast.success(t.scanFoundShort); }} onError={err => { setScanOpen(false); toast.error(isCameraDenied(err) ? t.cameraDenied : t.cameraError); }}/>
+      </DialogContent>
+    </Dialog>}
   </AppShell>;
 }
 

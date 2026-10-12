@@ -41,6 +41,14 @@ const ar = {
   orderSaved: 'أُرسل الطلب', orderUpdated: 'حُدّث الطلب', emptyOrders: 'لا توجد طلبات بعد', emptyOrdersHint: 'أنشئ أول طلب لزبونك من الزر أعلاه.',
   allOrders: 'الكل', orderNo: 'طلب', newOrderToast: 'طلب جديد وصل', tapToAdd: 'انقر لإضافته', each: 'للقطعة', itemsCount: 'صنف',
   searchOrderProducts: 'ابحث عن صنف بالاسم أو الموديل أو الباركود...', editOrder: 'تعديل الطلب', outOfStockShort: 'نفد المخزون',
+  // scan
+  scan: 'المسح', scanTitle: 'مسح الباركود', scanSubtitle: 'وجّه الكاميرا نحو الباركود أو أدخل الرمز يدويًا لعرض بيانات المنتج فورًا.',
+  scanStart: 'تشغيل الكاميرا', scanStop: 'إيقاف الكاميرا', cameraOff: 'الكاميرا متوقفة', scanHint: 'ضع الباركود داخل الإطار',
+  scanManual: 'أدخل الرمز يدويًا', scanGo: 'بحث', scanUsbHint: 'قارئ الباركود USB يعمل هنا أيضًا — امسح وسيظهر الناتج.', searching: 'جارٍ البحث…',
+  scanNotFound: 'لم يُعثر على منتج بهذا الرمز', scanAgain: 'مسح رمز آخر', scannedCode: 'الرمز الممسوح',
+  cameraDenied: 'تعذّر الوصول للكاميرا — امنح الإذن ثم أعد المحاولة', cameraError: 'لا توجد كاميرا أو المتصفح لا يدعمها',
+  fromInventory: 'صنف من المخزن', fromProducts: 'منتج محفوظ (ملصق)', printLabel: 'طباعة ملصق', openInEditor: 'فتح في المحرر',
+  scanFoundShort: 'تم العثور على الرمز',
 };
 
 const ckb: typeof ar = {
@@ -82,6 +90,14 @@ const ckb: typeof ar = {
   orderSaved: 'داواکاری نێردرا', orderUpdated: 'داواکاری نوێکرایەوە', emptyOrders: 'هێشتا داواکاری نییە', emptyOrdersHint: 'یەکەم داواکاری بۆ کڕیارەکەت لە دوگمەی سەرەوە دروست بکە.',
   allOrders: 'هەموو', orderNo: 'داواکاری', newOrderToast: 'داواکارییەکی نوێ گەیشت', tapToAdd: 'کرتە بکە بۆ زیادکردن', each: 'بۆ هەر پارچەیەک', itemsCount: 'کاڵا',
   searchOrderProducts: 'بە ناو، مۆدێل یان بارکۆد بگەڕێ...', editOrder: 'دەستکاریکردنی داواکاری', outOfStockShort: 'کۆگا تەواوبوو',
+  // scan
+  scan: 'سکان', scanTitle: 'سکانی باڕکۆد', scanSubtitle: 'کامێرا بەرەو باڕکۆدەکە بەڕێبکە یان کۆدەکە بە دەست بنووسە بۆ پیشاندانی زانیاری بەرهەم.',
+  scanStart: 'کامێرا بکەرەوە', scanStop: 'کامێرا بگرەوە', cameraOff: 'کامێرا گیراوە', scanHint: 'باڕکۆدەکە بخە ناو چوارچێوەکە',
+  scanManual: 'کۆدەکە بە دەست بنووسە', scanGo: 'گەڕان', scanUsbHint: 'خوێنەری باڕکۆدی USB لێرەش کاردەکات — سکان بکە و ئەنجام دەردەکەوێت.', searching: 'دەگەڕێت…',
+  scanNotFound: 'هیچ بەرهەمێک بەم کۆدە نەدۆزرایەوە', scanAgain: 'سکانی کۆدێکی تر', scannedCode: 'کۆدی سکانکراو',
+  cameraDenied: 'نەتوانرا بگەڕێین بە کامێراوە — مۆڵەت بدە و دووبارە هەوڵبدەرەوە', cameraError: 'کامێرایەک نییە یان وێبگەڕەکە پشتیوانی ناکات',
+  fromInventory: 'کاڵا لە کۆگا', fromProducts: 'بەرهەمی پاشەکەوتکراو (لیبڵ)', printLabel: 'چاپکردنی لیبڵ', openInEditor: 'کردنەوە لە ئێدیتر',
+  scanFoundShort: 'کۆدەکە دۆزرایەوە',
 };
 
 export const ui = { ar, ckb } satisfies Record<Language, typeof ar>;
