@@ -1,4 +1,4 @@
-export type PrintSlot = { x:number; y:number; rotated:boolean };
+export type PrintSlot = { x:number; y:number; rotated:boolean; productId?:string|undefined };
 export function slotSize(slot:PrintSlot) {return slot.rotated ? {width:105,height:74} : {width:74,height:105};}
 export function constrainSlot(slot:PrintSlot):PrintSlot {
   const size=slotSize(slot);

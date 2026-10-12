@@ -582,3 +582,5 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
 .fs-top > label { font-weight:600; color:var(--muted-foreground); }
 .fs-top .field-input { width:56px; text-align:center; }
 .fs-slider { width:100%; accent-color:var(--primary); height:30px; cursor:pointer; }
+.slot-product { position:absolute;left:2mm;bottom:2mm;max-width:calc(100% - 4mm);padding:0 1.5mm;height:5mm;line-height:5mm;font-size:9px;border-radius:1mm;background:rgba(0,0,0,.55);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.print-add { min-width:150px; }
