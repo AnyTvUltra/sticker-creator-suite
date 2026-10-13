@@ -69,7 +69,9 @@ export function AppShell({ active, children }: { active: AppPage; children: Reac
   const uid = user?.id;
   useEffect(() => {
     if (!canViewOrders) return;
-    const channel = supabase.channel('orders-live')
+    // Unique topic per mount: every route remounts AppShell and the previous channel's async
+    // removal may still be pending; reusing its topic would make `.on()` throw on a joined channel.
+    const channel = supabase.channel(`orders-live-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, payload => {
         const row = payload.new as { user_id?: string; customer_name?: string; total?: number };
         if (row.user_id === uid) return;

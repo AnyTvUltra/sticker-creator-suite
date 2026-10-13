@@ -365,7 +365,7 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
 @media(max-width:760px) {
   .header-nav { display:none; }
   .has-mobile-nav { padding-bottom:calc(68px + env(safe-area-inset-bottom)); }
-  .mobile-nav { display:flex;position:fixed;inset-inline:0;bottom:0;z-index:40;background:color-mix(in oklch,var(--card) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around; }
+  .mobile-nav { display:flex;position:fixed;inset-inline:0;bottom:0;z-index:40;background:var(--card);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom));justify-content:space-around; }
   .mobile-nav a { flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;color:var(--muted-foreground);text-decoration:none;font-size:10px;font-weight:600;min-width:0; }
   .mobile-nav a span { white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
   .mobile-nav a.active { color:var(--primary);background:var(--accent); }
