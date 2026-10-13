@@ -49,7 +49,8 @@ const ar = {
   cameraDenied: 'تعذّر الوصول للكاميرا — امنح الإذن ثم أعد المحاولة', cameraError: 'لا توجد كاميرا أو المتصفح لا يدعمها',
   fromInventory: 'صنف من المخزن', fromProducts: 'منتج محفوظ (ملصق)', printLabel: 'طباعة ملصق', openInEditor: 'فتح في المحرر',
   scanFoundShort: 'تم العثور على الرمز',
-  savedProductBadge: 'منتج', unlinkedProducts: 'منتجات بلا صنف في المخزن', unlinkedProductsHint: 'أنشئ لها صنفًا لتظهر في المخزن والطلبات والمسح',
+  savedProductBadge: 'منتج', unlinkedProducts: 'ملصقات غير مرتبطة بالمخزن', unlinkedProductsHint: 'حوّلها إلى منتجات في المخزن لتظهر في الطلبات والمسح والطباعة',
+  convertAll: 'تحويل الكل إلى المخزن', convertedAll: 'تم تحويل {n} ملصق إلى منتجات في المخزن',
   createProductWithCode: 'إنشاء منتج بهذا الرمز',
 };
 
@@ -100,7 +101,8 @@ const ckb: typeof ar = {
   cameraDenied: 'نەتوانرا بگەڕێین بە کامێراوە — مۆڵەت بدە و دووبارە هەوڵبدەرەوە', cameraError: 'کامێرایەک نییە یان وێبگەڕەکە پشتیوانی ناکات',
   fromInventory: 'کاڵا لە کۆگا', fromProducts: 'بەرهەمی پاشەکەوتکراو (لیبڵ)', printLabel: 'چاپکردنی لیبڵ', openInEditor: 'کردنەوە لە ئێدیتر',
   scanFoundShort: 'کۆدەکە دۆزرایەوە',
-  savedProductBadge: 'بەرهەم', unlinkedProducts: 'بەرهەمی بێ کاڵا لە کۆگا', unlinkedProductsHint: 'کاڵایەکیان بۆ دروست بکە لە کۆگا و داواکاری و سکاندا دەردەکەون',
+  savedProductBadge: 'بەرهەم', unlinkedProducts: 'لیبڵی نەبەستراو بە کۆگا', unlinkedProductsHint: 'بیانگۆڕە بۆ بەرهەم لە کۆگا تا لە داواکاری و سکان و چاپدا دەربکەون',
+  convertAll: 'گۆڕینی هەموویان بۆ کۆگا', convertedAll: '{n} لیبڵ گۆڕدرا بۆ بەرهەم لە کۆگا',
   createProductWithCode: 'دروستکردنی بەرهەم بەم کۆدە',
 };
 

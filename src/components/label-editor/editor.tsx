@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { AlignCenter, AlignLeft, AlignRight, ArrowDownToLine, ArrowLeft, ArrowRight, Barcode as BarcodeIcon, Bold, Check, CheckCheck, ChevronDown, CircleHelp, Copy, Eye, EyeOff, FileText, GripVertical, ImagePlus, Languages, Layers, LayoutTemplate, LoaderCircle, Maximize, Minus, MousePointer2, Package, Pencil, Plus, Printer, Redo2, RotateCcw, Save, ScanLine, Settings2, ShieldCheck, Sparkles, Tag, Trash2, Type, Undo2, Upload, X, ZoomIn, ZoomOut, Boxes, Link2, RefreshCw, Unlink } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { AlignCenter, AlignLeft, AlignRight, ArrowDownToLine, ArrowRight, Barcode as BarcodeIcon, Bold, Check, CheckCheck, ChevronDown, CircleHelp, Copy, Eye, EyeOff, FileText, GripVertical, ImagePlus, Languages, Layers, LayoutTemplate, LoaderCircle, Maximize, Minus, MousePointer2, Pencil, Plus, Printer, Redo2, RotateCcw, Save, Settings2, ShieldCheck, Sparkles, Tag, Trash2, Type, Undo2, Upload, X, ZoomIn, ZoomOut, Boxes, Link2, RefreshCw, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -10,8 +10,7 @@ import { useSession } from '@/components/app/session';
 import { AppShell } from '@/components/app/app-shell';
 import { ui } from '@/components/app/i18n';
 import { InventoryPicker } from '@/components/inventory/inventory-picker';
-import { BarcodeScanner, isCameraDenied } from '@/components/scan/barcode-scanner';
-import { DRAFT_INVENTORY_ID_KEY, DRAFT_KEY, DRAFT_PRODUCT_ID_KEY, fitBarcodeElement, hasLinkColumn, productFromItem, type InventoryItem } from '@/lib/inventory-link';
+import { DRAFT_INVENTORY_ID_KEY, DRAFT_KEY, DRAFT_PRODUCT_ID_KEY, OPEN_PRINT_KEY, fitBarcodeElement, itemFieldsFromProduct, hasLinkColumn, productFromItem, type InventoryItem } from '@/lib/inventory-link';
 import type { Database, Json } from '@/integrations/supabase/types';
 import headphones from '@/assets/headphones.jpg';
 import { defaultElements, productSchema, sampleProduct, words, type DocumentState, type ElementKind, type LabelElement, type Language, type Product } from './model';
@@ -22,17 +21,7 @@ import { arrangeSlots, constrainSlot, slotSize, slotsOverlap, type PrintSlot } f
 type SavedProduct = { id:string; name:string; data:Json; layout:Json; theme:string; updated_at:string; inventory_item_id?:string|null };
 type SavedTemplate = Database['public']['Tables']['label_templates']['Row'];
 const initialDocument: DocumentState = { product:sampleProduct, elements:defaultElements, theme:'mint' };
-const fmtNumber=(n:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(Number(n)||0);
 const stockStatus=(i:InventoryItem)=>i.quantity<=0?'out':i.quantity<=i.min_quantity?'low':'in';
-function matchesSearch(p:SavedProduct,item:InventoryItem|undefined,query:string){
-  const q=query.trim().toLowerCase();if(!q)return true;
-  const d=p.data as unknown as Partial<Product>;
-  return [p.name,d.model,d.barcode,d.color,item?.sku,item?.category].some(v=>typeof v==='string' && v.toLowerCase().includes(q));
-}
-function ProductStock({item,u}:{item:InventoryItem|undefined;u:(typeof ui)['ar']}){
-  if(!item)return <p className="product-stock muted">{u.linkedMissing}</p>;
-  return <Link to="/inventory" className="product-stock"><span className={`inv-badge-inline inv-${stockStatus(item)}`}>{u.quantity}: <b dir="ltr">{item.quantity}</b></span><span>{u.price}: <b dir="ltr">{fmtNumber(item.price)}</b></span></Link>;
-}
 function persistDraft(doc:DocumentState,productId:string|null,inventoryId:string|null){
   sessionStorage.setItem(DRAFT_KEY,JSON.stringify(doc));
   if(productId)sessionStorage.setItem(DRAFT_PRODUCT_ID_KEY,productId);else sessionStorage.removeItem(DRAFT_PRODUCT_ID_KEY);
@@ -44,7 +33,7 @@ function IconButton({ label, children, onClick, disabled=false, active=false, cl
   return <Button variant="ghost" size="icon" title={label} aria-label={label} disabled={disabled} onClick={onClick} className={`tool-icon ${active?'selected':''} ${className}`}>{children}</Button>;
 }
 
-export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'templates' }) {
+export function LabelEditor({ view='editor' }: { view?:'editor'|'templates' }) {
   const navigate = useNavigate();
   const {user,language,can}=useSession();
   const t=words[language];
@@ -60,14 +49,11 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
   const [productId,setProductId]=useState<string|null>(null);
   const [inventoryId,setInventoryId]=useState<string|null>(null);
   const [linkedItem,setLinkedItem]=useState<InventoryItem|null|undefined>(undefined);
-  const [stock,setStock]=useState<Record<string,InventoryItem>>({});
   const [templates,setTemplates]=useState<SavedTemplate[]|null>(null);
   const [tplName,setTplName]=useState('');
   const [tplMissing,setTplMissing]=useState(false);
   const [pickerOpen,setPickerOpen]=useState(false);
   const u=ui[language];
-  const [search,setSearch]=useState('');
-  const [scanOpen,setScanOpen]=useState(false);
   const [printOpen,setPrintOpen]=useState(false);
   const [copies,setCopies]=useState(1);
   const [paper,setPaper]=useState<'a4'|'a7'>('a4');
@@ -101,6 +87,7 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
   useEffect(()=>{
     setHydrated(true);
     try { const draft=JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); if(draft && productSchema.safeParse(draft.product).success && Array.isArray(draft.elements)) {setDocument(draft);setProductId(sessionStorage.getItem(DRAFT_PRODUCT_ID_KEY));setInventoryId(sessionStorage.getItem(DRAFT_INVENTORY_ID_KEY));} } catch { /* Ignore invalid drafts. */ }
+    if(sessionStorage.getItem(OPEN_PRINT_KEY)){sessionStorage.removeItem(OPEN_PRINT_KEY);setPrintOpen(true);}
   },[]);
   useEffect(()=>{ if(hydrated) persistDraft(document,productId,inventoryId); },[document,hydrated,productId,inventoryId]);
   useEffect(()=>{
@@ -120,11 +107,6 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
       if(error){setTplMissing(true);setTemplates([]);return;}
       setTplMissing(false);setTemplates(data??[]);})();
   },[user,view,can]);
-  useEffect(()=>{
-    const ids=[...new Set(products.map(p=>p.inventory_item_id).filter((x):x is string=>!!x))];
-    if(view!=='products' || !ids.length || !can('inventory.view')){setStock({});return;}
-    supabase.from('inventory_items').select('*').in('id',ids).then(({data})=>setStock(Object.fromEntries((data ?? []).map(i=>[i.id,i]))));
-  },[products,view,can]);
   function update(next:DocumentState,record=true) {
     if(record){setHistory(h=>[...h.slice(-39),docRef.current]);setFuture([]);}
     setDocument(next);setDirty(true);
@@ -162,28 +144,42 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
     addElement(kind as ElementKind,rect?{x:(e.clientX-rect.left)/(rect.width/350),y:(e.clientY-rect.top)/(rect.height/497)}:undefined);
   }
   function newProduct(){const next={product:{...sampleProduct,name:'',model:'',color:'',size:'',specs:'',warranty:'',barcode:'',store:document.product.store,image:''},elements:defaultElements,theme:'mint'};update(next);setProductId(null);setInventoryId(null);setSelected('name');setSlots(ss=>ss.map(s=>({...s,productId:undefined})));persistDraft(next,null,null);navigate({to:'/'});}
-  function openProduct(p:SavedProduct,stay=false){const result=productSchema.safeParse(p.data);if(!result.success || !Array.isArray(p.layout)){toast.error(t.failure);return;}const next={product:result.data,elements:p.layout as unknown as LabelElement[],theme:p.theme};setDocument(next);if(p.id!==productId){setSlots(ss=>ss.map(s=>({...s,productId:undefined})));setSelectedSlot(0);}setProductId(p.id);setInventoryId(p.inventory_item_id ?? null);setHistory([]);setFuture([]);setDirty(false);persistDraft(next,p.id,p.inventory_item_id ?? null);if(!stay)navigate({to:'/'});}
   function applyItem(item:InventoryItem){const product=productFromItem(item,document.product);update({...document,product,elements:fitBarcodeElement(document.elements,document.product.codeFormat,product.codeFormat)});setInventoryId(item.id);setLinkedItem(item);setPickerOpen(false);}
   async function createItem(){
     const p=document.product;
     if(!p.name.trim()){toast.error(t.invalid);return;}
     setBusy(true);
-    const {data,error}=await supabase.from('inventory_items').insert({name:p.name.trim(),model:p.model,color:p.color,size:p.size,warranty:p.warranty,specs:p.specs,image:p.image,barcode:p.barcode,sku:'',category:'',location:'',notes:'',price:0,cost:0,quantity:0,min_quantity:0}).select('*').single();
+    const {data,error}=await supabase.from('inventory_items').insert(itemFieldsFromProduct(p)).select('*').single();
     setBusy(false);
     if(error){toast.error(t.failure);return;}
     setInventoryId(data.id);setLinkedItem(data);setDirty(true);toast.success(u.createdLinked);
   }
-  async function save(mode:'insert'|'update'='insert'){
+  // The inventory item is the product; the label is its design. 'save' writes this product
+  // (creating its inventory item if it has none and mirroring name/barcode/photo back to it),
+  // 'new' forks a separate product: a new inventory item with its own label.
+  async function save(mode:'save'|'new'='save'){
     if(!productSchema.safeParse(document.product).success){toast.error(t.invalid);return;}
     if(!user || !can('labels.save'))return;
-    if(mode==='update'&&!productId)mode='insert';
     setBusy(true);
+    const link=await hasLinkColumn();
+    const pid=mode==='new'?null:productId;
+    let inv=mode==='new'?null:inventoryId;
+    if(link && !inv && can('inventory.create')){
+      const {data,error}=await supabase.from('inventory_items').insert(itemFieldsFromProduct(document.product)).select('*').single();
+      if(error){setBusy(false);toast.error(t.failure);return;}
+      inv=data.id;setLinkedItem(data);
+    }else if(link && inv && can('inventory.edit')){
+      const {data}=await supabase.from('inventory_items').update(itemFieldsFromProduct(document.product)).eq('id',inv).select('*').maybeSingle();
+      if(data)setLinkedItem(data);
+    }
     const payload:Database['public']['Tables']['label_products']['Insert']={user_id:user.id,name:document.product.name,data:document.product as unknown as Json,layout:document.elements as unknown as Json,theme:document.theme,updated_at:new Date().toISOString()};
-    if(await hasLinkColumn())payload.inventory_item_id=inventoryId;
-    const {data,error}=mode==='update'?await supabase.from('label_products').update(payload).eq('id',productId!).select().single():await supabase.from('label_products').insert(payload).select().single();
-    setBusy(false);if(error){toast.error(t.failure);return;}setProductId(data.id);setDirty(false);setProducts(ps=>[data as SavedProduct,...ps.filter(x=>x.id!==data.id)]);toast.success(mode==='update'?t.updatedToast:t.savedToast);
+    if(link)payload.inventory_item_id=inv;
+    const {user_id:_owner,...changes}=payload;
+    const {data,error}=pid?await supabase.from('label_products').update(changes).eq('id',pid).select().single():await supabase.from('label_products').insert(payload).select().single();
+    setBusy(false);if(error){toast.error(t.failure);return;}
+    setProductId(data.id);setInventoryId(inv);setDirty(false);setProducts(ps=>[data as SavedProduct,...ps.filter(x=>x.id!==data.id)]);
+    toast.success(pid?t.updatedToast:t.savedToast);
   }
-  async function removeProduct(id:string){if(!window.confirm(language==='ar'?'هل تريد حذف هذا المنتج؟':'ئایا ئەم بەرهەمە دەسڕیتەوە؟'))return;const {error}=await supabase.from('label_products').delete().eq('id',id);if(error)toast.error(t.failure);else{setProducts(p=>p.filter(x=>x.id!==id));setSlots(ss=>ss.map(s=>s.productId===id?{...s,productId:undefined}:s));}}
   function applyTemplate(key:string){setTemplate(key);update({...document,elements:defaultElements.map(el=>key==='compact'?{...el,visible:el.kind!=='photo',y:el.kind==='details'?150:el.kind==='specs'?205:el.kind==='warranty'?280:el.kind==='barcode'?335:el.y}:el)});}
   function applyCustomTemplate(tpl:SavedTemplate){setTemplate('');update({...document,elements:tpl.elements as unknown as LabelElement[],theme:tpl.theme,product:{...document.product,store:tpl.store||document.product.store}});}
   async function saveTemplate(name:string){
@@ -192,11 +188,6 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
     if(error){toast.error(t.failure);return;}
     toast.success(u.templateSaved);setTplName('');
     const {data}=await supabase.from('label_templates').select('*').order('updated_at',{ascending:false});setTemplates(data??[]);
-  }
-  async function saveProductTemplate(p:SavedProduct){
-    if(!user)return;
-    const {error}=await supabase.from('label_templates').insert({name:p.name,elements:p.layout,theme:p.theme,store:(p.data as unknown as Product).store||'',user_id:user.id});
-    if(error){toast.error(t.failure);return;}toast.success(u.templateSaved);
   }
   async function deleteTemplate(id:string){if(!window.confirm(u.confirmDeleteTemplate))return;const {error}=await supabase.from('label_templates').delete().eq('id',id);if(error)toast.error(t.failure);else setTemplates(ts=>(ts??[]).filter(x=>x.id!==id));}
   async function renameTemplate(tpl:SavedTemplate){const name=window.prompt(u.templateName,tpl.name)?.trim();if(!name)return;const {error}=await supabase.from('label_templates').update({name,updated_at:new Date().toISOString()}).eq('id',tpl.id);if(error)toast.error(t.failure);else setTemplates(ts=>(ts??[]).map(x=>x.id===tpl.id?{...x,name}:x));}
@@ -208,8 +199,8 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
   const templatePicker=<div className="template-grid">{([['classic',t.standard],['compact',t.compact]] as const).map(([key,label])=><Button key={key} variant="ghost" className={`template-choice ${template===key?'active':''}`} onClick={()=>applyTemplate(key)}><span className="template-mini"><i/><i/><b/><i/><i/></span>{label}</Button>)}</div>;
 
   return <AppShell active={view}>
-    {view==='products'?<main className="library"><div className="library-top"><h1>{t.library}</h1>{can('labels.design') && <Button onClick={newProduct}><Plus/>{t.newProduct}</Button>}</div><div className="library-search"><input className="field-input max-w-sm" value={search} onChange={e=>setSearch(e.target.value)} aria-label={u.searchProducts} placeholder={u.searchProducts}/><Button variant="outline" size="icon" aria-label={u.scan} title={u.scan} onClick={()=>setScanOpen(true)}><ScanLine/></Button></div>{products.length===0?<div className="empty-library"><Package/><h2>{t.empty}</h2><p>{t.emptyText}</p><Button className="mt-5" onClick={()=>navigate({to:'/'})}>{t.newProduct}<Plus/></Button></div>:<div className="library-grid">{products.filter(p=>matchesSearch(p,stock[p.inventory_item_id ?? ''],search)).map(p=><article key={p.id} className="product-card">{(p.data as unknown as Product).image?<img src={(p.data as unknown as Product).image} alt={p.name}/>:p.name==='سماعات لاسلكية'?<img src={headphones} alt={p.name}/>:<div className="flex h-36 items-center justify-center bg-muted"><Tag className="size-10 text-primary"/></div>}<div className="product-card-content"><h2>{p.name}</h2><p dir="ltr">{(p.data as unknown as Product).model}</p>{p.inventory_item_id && can('inventory.view') && <ProductStock item={stock[p.inventory_item_id]} u={u}/>}<div className="mt-4 flex items-center gap-2">{can('labels.design') && <Button variant="outline" onClick={()=>openProduct(p)}>{t.edit}<ArrowLeft/></Button>}{can('labels.print') && <IconButton label={t.print} onClick={()=>{openProduct(p,true);setPrintOpen(true);}}><Printer/></IconButton>}{can('labels.save') && <IconButton label={u.saveAsTemplate} onClick={()=>saveProductTemplate(p)}><LayoutTemplate/></IconButton>}{can('labels.delete') && <IconButton label={t.delete} onClick={()=>removeProduct(p.id)}><Trash2/></IconButton>}</div></div></article>)}</div>}</main>:<>
-    <section className="editor-heading"><div><h1>{view==='templates'?t.templates:t.heading}</h1><p>{t.description}</p></div><div className="heading-actions"><span className="saved-indicator"><CheckCheck size={14}/>{dirty?t.unsaved:t.saved}</span>{can('labels.save') && <Button variant="outline" onClick={()=>save()} disabled={busy}>{busy?<LoaderCircle className="animate-spin"/>:<Save/>}{t.save}</Button>}{productId && can('labels.save') && <Button variant="outline" onClick={()=>save('update')} disabled={busy}>{busy?<LoaderCircle className="animate-spin"/>:<RefreshCw/>}{t.update}</Button>}{can('labels.print') && <Button onClick={()=>setPrintOpen(true)}><Printer/>{t.print}</Button>}</div></section>
+    <>
+    <section className="editor-heading"><div><h1>{view==='templates'?t.templates:t.heading}</h1><p>{t.description}</p></div><div className="heading-actions"><span className="saved-indicator"><CheckCheck size={14}/>{dirty?t.unsaved:t.saved}</span>{can('labels.save') && <Button variant="outline" onClick={()=>save()} disabled={busy}>{busy?<LoaderCircle className="animate-spin"/>:<Save/>}{productId||inventoryId?t.update:t.saveProduct}</Button>}{(productId||inventoryId) && can('labels.save') && can('inventory.create') && <Button variant="outline" onClick={()=>save('new')} disabled={busy}>{busy?<LoaderCircle className="animate-spin"/>:<Copy/>}{t.save}</Button>}{can('labels.print') && <Button onClick={()=>setPrintOpen(true)}><Printer/>{t.print}</Button>}</div></section>
     <main className="editor-shell">
       <aside className="panel product-panel"><div className="panel-tabs"><Button variant="ghost" className={`panel-tab ${panelTab==='data' && view!=='templates'?'active':''}`} onClick={()=>setPanelTab('data')}>{t.data}</Button><Button variant="ghost" className={`panel-tab ${panelTab==='design' || view==='templates'?'active':''}`} onClick={()=>setPanelTab('design')}>{t.design}</Button></div><div className="panel-inner">{panelTab==='data' && view!=='templates'?<><div className="panel-title">{t.info}<IconButton label={t.newProduct} onClick={newProduct}><Plus/></IconButton></div>{can('inventory.view') && <div className="link-card">{!inventoryId ? <><Button variant="outline" className="w-full" onClick={()=>setPickerOpen(true)}><Boxes/>{u.linkInventory}</Button>{can('inventory.create') && <Button variant="ghost" className="w-full" onClick={createItem} disabled={busy}><Plus/>{u.createInInventory}</Button>}</> : linkedItem===undefined ? <LoaderCircle className="mx-auto animate-spin text-muted-foreground"/> : <>
         <div className="link-card-head"><Link2 size={14}/><b>{u.linkedTo}</b><button type="button" className="link-card-change" onClick={()=>setPickerOpen(true)}>{u.pickItem}</button></div>
@@ -222,9 +213,8 @@ export function LabelEditor({ view='editor' }: { view?:'editor'|'products'|'temp
       <aside className="panel inspector"><div className="inspector-heading"><Settings2 size={15}/>{t.elements}</div><section className="inspector-section"><h2 className="section-title">{t.add}<Plus size={13}/></h2><div className="element-grid">{([['text',Type,t.text],['photo',ImagePlus,t.image],['barcode',BarcodeIcon,t.barcode],['line',Minus,t.line],['warranty',ShieldCheck,t.warranty],['specs',FileText,t.specs]] as const).map(([kind,Icon,label])=><Button key={kind} variant="ghost" className="add-element" onClick={()=>addElement(kind)} draggable onDragStart={e=>e.dataTransfer.setData('label-element',kind)}><Icon/>{label}</Button>)}</div></section>
       <section className="inspector-section"><h2 className="section-title">{t.layers}<Layers size={14}/></h2><div className="layer-list">{document.elements.filter(el=>el.kind!=='footer').map(el=>{const Icon=layerIcons[el.kind];return <div className={`layer-row ${selected===el.id?'active':''}`} key={el.id}><GripVertical className="text-muted-foreground"/><Icon/><Button variant="ghost" className="layer-name h-7 justify-start p-0 text-[10px]" onClick={()=>setSelected(el.id)}>{layerName(el.kind)}</Button><Button variant="ghost" size="icon" className="layer-toggle" aria-label={`${el.visible?t.hide:t.show} ${layerName(el.kind)}`} onClick={()=>update({...document,elements:document.elements.map(x=>x.id===el.id?{...x,visible:!x.visible}:x)})}>{el.visible?<Eye className="text-muted-foreground"/>:<EyeOff/>}</Button></div>;})}</div></section>
       <section className="inspector-section"><h2 className="section-title">{current?t.selected:t.colors}<Sparkles size={13}/></h2>{current?<><div className="field-row"><label className="field"><span className="field-label">X</span><input type="number" aria-label="X" className="field-input" dir="ltr" value={current.x} min={0} max={350-current.width} onChange={e=>patchElement({x:Math.max(0,Math.min(350-current.width,Number(e.target.value)))})}/></label><label className="field"><span className="field-label">Y</span><input type="number" aria-label="Y" className="field-input" dir="ltr" value={current.y} min={8} max={497-current.height} onChange={e=>patchElement({y:Math.max(8,Math.min(497-current.height,Number(e.target.value)))})}/></label></div><div className="field-row"><label className="field"><span className="field-label">{rt.width}</span><input type="number" aria-label={rt.width} className="field-input" dir="ltr" value={current.width} min={20} max={350-current.x} onChange={e=>patchElement({width:Math.max(20,Math.min(350-current.x,Number(e.target.value)||20)),...(current.kind==='barcode' && document.product.codeFormat==='qr'?{height:Math.max(20,Math.min(497-current.y,Number(e.target.value)||20))}:{})})}/></label><label className="field"><span className="field-label">{rt.height}</span><input type="number" aria-label={rt.height} className="field-input" dir="ltr" value={current.height} min={12} max={497-current.y} onChange={e=>patchElement({height:Math.max(12,Math.min(497-current.y,Number(e.target.value)||12))})}/></label></div>{current.kind==='barcode' && <div className="resize-row"><span className="field-label">{rt.codeSize}</span><div className="zoom-control"><IconButton label={rt.shrink} onClick={()=>scaleElement(1/1.1)}><Minus/></IconButton><span dir="ltr">{current.width} × {current.height}</span><IconButton label={rt.grow} onClick={()=>scaleElement(1.1)}><Plus/></IconButton></div></div>}{current.kind==='text' && <input aria-label={t.text} className="field-input mb-3" value={current.text || ''} maxLength={120} onChange={e=>patchElement({text:e.target.value})}/>}<label className="field mt-3"><span className="field-label">{pt.color}</span><div className="swatches">{(['ink','muted','green','red','blue'] as const).map(color=><Button key={color} variant="ghost" aria-label={`${pt.color} ${color}`} title={color} className={`swatch text-swatch ink-${color} ${current.textColor===color?'active':''}`} onClick={()=>patchElement({textColor:color})}/>)}</div></label><label className="field"><span className="field-label">{pt.weight}</span><input aria-label={pt.weight} type="range" min={300} max={900} step={50} value={current.fontWeight ?? (current.bold || current.kind==='name'?750:400)} onChange={e=>patchElement({fontWeight:Number(e.target.value),bold:Number(e.target.value)>=700})}/></label><div className="fs-block"><div className="fs-top"><label className="text-[10px]">{t.sizeFont}</label><input key={current.fontSize || (current.kind==='name'?23:11)} className="field-input" type="text" inputMode="numeric" pattern="[0-9]*" dir="ltr" aria-label={t.sizeFont} defaultValue={current.fontSize || (current.kind==='name'?23:11)} onFocus={e=>e.target.select()} onBlur={e=>commitFont(e.target.value,e.currentTarget)} onKeyDown={e=>{if(e.key==='Enter')commitFont(e.currentTarget.value,e.currentTarget);else if(e.key==='Escape'){e.currentTarget.value=String(current.fontSize||(current.kind==='name'?23:11));e.currentTarget.blur();}}}/></div><input type="range" dir="ltr" className="fs-slider" min={8} max={40} step={1} aria-label={t.sizeFont} value={current.fontSize || (current.kind==='name'?23:11)} onChange={e=>scrubFont(Number(e.target.value))} onPointerUp={commitScrub} onTouchEnd={commitScrub} onKeyUp={commitScrub}/></div></>:<div className="swatches">{['mint','blue','rose','silver'].map(color=><Button key={color} variant="ghost" title={color} aria-label={color} className={`swatch ${color} ${document.theme===color?'active':''}`} onClick={()=>update({...document,theme:color})}/>)}</div>}</section></aside>
-    </main><footer className="below-editor"><span><span className="status-dot"/>{t.ready}</span><span>{document.product.codeFormat==='qr'?'QR Code':'CODE 128'} <span className="mx-2">·</span> A7 / ISO 216</span></footer></>}
+    </main><footer className="below-editor"><span><span className="status-dot"/>{t.ready}</span><span>{document.product.codeFormat==='qr'?'QR Code':'CODE 128'} <span className="mx-2">·</span> A7 / ISO 216</span></footer></>
     {pickerOpen && <InventoryPicker onClose={()=>setPickerOpen(false)} onPick={applyItem}/>}
-    {scanOpen && <Dialog open onOpenChange={o=>{if(!o)setScanOpen(false);}}><DialogContent dir="rtl" className="scan-dialog"><DialogHeader><DialogTitle>{u.scanTitle}</DialogTitle><DialogDescription>{u.scanHint}</DialogDescription></DialogHeader><BarcodeScanner onResult={text=>{setSearch(text);setScanOpen(false);toast.success(u.scanFoundShort);}} onError={err=>{setScanOpen(false);toast.error(isCameraDenied(err)?u.cameraDenied:u.cameraError);}}/></DialogContent></Dialog>}
     <Dialog open={printOpen} onOpenChange={setPrintOpen}><DialogContent dir="rtl" className="print-dialog"><DialogHeader><DialogTitle>{t.preview}</DialogTitle><DialogDescription>{paper==='a4'?'A4 · 210 × 297 mm':'A7 · 74 × 105 mm'}</DialogDescription></DialogHeader><div className="print-controls"><label className="field"><span className="field-label">{pt.paper}</span><select aria-label={pt.paper} className="field-input" value={paper} onChange={e=>setPaper(e.target.value as 'a4'|'a7')}><option value="a4">A4</option><option value="a7">A7</option></select></label><label className="field"><span className="field-label">{t.copies}</span><input aria-label={t.copies} className="field-input" type="number" min={1} max={50} value={copies} onChange={e=>changeCopies(Number(e.target.value))}/></label>{paper==='a4' && <Button variant="outline" onClick={()=>{setSlots(arrangeSlots(Math.min(copies,8)));setSelectedSlot(0);}}><LayoutTemplate/>{pt.arrange}</Button>}{products.length>0 && <select className="field-input print-add" aria-label={pt.addProduct} value="" onChange={e=>addProductSlot(e.target.value)}><option value="" disabled>{pt.addProduct}</option>{products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>}</div>{paper==='a4'?<><div className="a4-preview"><div className="a4-preview-frame"><PrintSheet document={document} documents={slotDocuments} language={language} slots={slots} selected={selectedSlot} onSelect={setSelectedSlot} onMove={(index,slot)=>setSlots(ss=>ss.map((s,i)=>i===index?slot:s))}/></div></div><div className="print-position"><select className="field-input" aria-label={pt.position} value={selectedSlot} onChange={e=>setSelectedSlot(Number(e.target.value))}>{slots.map((_,i)=><option key={i} value={i}>{pt.position} {i+1}</option>)}</select>{(['x','y'] as const).map(axis=><label key={axis}>{axis.toUpperCase()} mm<input className="field-input" aria-label={`A4 ${axis.toUpperCase()}`} type="number" min={0} step={.1} max={axis==='x'?210-slotSize(activeSlot).width:297-slotSize(activeSlot).height} value={activeSlot[axis]} onChange={e=>patchSlot({[axis]:Number(e.target.value)})}/></label>)}<IconButton label={pt.rotate} onClick={()=>patchSlot({rotated:!activeSlot.rotated})}><RotateCcw/></IconButton><select className="field-input print-slot-product" aria-label={pt.slotProduct} value={activeSlot.productId ?? ''} onChange={e=>assignSlotProduct(e.target.value)}><option value="">{pt.current}</option>{products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><IconButton label={pt.removeSlot} onClick={removeSlot} disabled={slots.length<=1}><Trash2/></IconButton></div>{slots.length>4 && <p className="text-xs text-muted-foreground">{pt.edge}</p>}{slotsOverlap(slots) && <p className="text-xs text-destructive">{pt.overlap}</p>}<div className="text-xs text-muted-foreground">{pt.sheet}: {Math.ceil(copies/8)}</div></>:<div className="print-preview"><div className="h-[398px] w-[280px]"><div className="origin-top-left scale-[.8]"><LabelCanvas document={document} language={language} printing/></div></div></div>}<Button onClick={doPrint} disabled={paper==='a4' && slotsOverlap(slots)}><Printer/>{t.print}</Button></DialogContent></Dialog>
     {hydrated && createPortal(<div className={`print-only print-${paper}`}><style>{`@media print { @page { size:${paper==='a4'?'210mm 297mm':'74mm 105mm'}; margin:0; } }`}</style>{paper==='a4'?Array.from({length:Math.ceil(copies/8)},(_,page)=><div className="print-page" key={page}><PrintSheet document={document} documents={slotDocuments.slice(0,Math.min(8,copies-page*8))} language={language} slots={slots.slice(0,Math.min(8,copies-page*8))}/></div>):Array.from({length:copies},(_,i)=><div className="print-page" key={i}><LabelCanvas document={document} language={language} printing/></div>)}</div>,window.document.body)}
   </AppShell>;

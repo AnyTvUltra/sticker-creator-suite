@@ -566,7 +566,7 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
 .ticket-price:focus { outline:2px solid color-mix(in srgb,var(--primary) 40%,transparent); }
 
 .unlinked-prods { margin-top:14px; background:var(--card); border:1px dashed var(--border); border-radius:16px; padding:14px 16px; }
-.unlinked-prods h3 { display:flex; align-items:center; gap:8px; font-size:.92rem; font-weight:700; margin-bottom:10px; }
+.unlinked-prods h3 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:.92rem; font-weight:700; margin-bottom:10px; }
 .unlinked-hint { font-size:.72rem; font-weight:400; color:var(--muted-foreground); }
 .unlinked-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
 .unlinked-card { display:flex; align-items:center; gap:10px; flex:none; min-width:250px; background:var(--muted); border-radius:12px; padding:8px 12px; }

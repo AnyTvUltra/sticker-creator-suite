@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Barcode as BarcodeIcon, Boxes, History, ImagePlus, Layers, LoaderCircle, MapPin, Minus, Package, Pencil, Plus, ScanLine, Search, Tag, Trash2, Wallet, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Barcode as BarcodeIcon, Boxes, History, ImagePlus, Layers, LoaderCircle, MapPin, Minus, Package, Pencil, Plus, Printer, ScanLine, Search, Tag, Trash2, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,7 +10,7 @@ import { productSchema, type LabelElement, type Product } from '@/components/lab
 import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
-import { hasLinkColumn, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
+import { hasLinkColumn, itemFieldsFromProduct, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
 import { BarcodeScanner, isCameraDenied } from '@/components/scan/barcode-scanner';
 
 type Item = InventoryItem;
@@ -124,18 +124,23 @@ export function InventoryPage() {
   }
 
   async function createItemFromProduct(p: Pick<Database['public']['Tables']['label_products']['Row'], 'id' | 'name' | 'data'>) {
-    const d = p.data as Partial<Product>;
-    const payload = { name: p.name || d.name || '', model: d.model ?? '', barcode: d.barcode ?? '', image: d.image ?? '', color: d.color ?? '', size: d.size ?? '', specs: d.specs ?? '', warranty: d.warranty ?? '' };
-    const { data, error } = await supabase.from('inventory_items').insert(payload).select('*').single();
-    if (error) { toast.error(rpcError(error.message, t)); return; }
+    const { data, error } = await supabase.from('inventory_items').insert(itemFieldsFromProduct(p.data as Partial<Product>, p.name)).select('*').single();
+    if (error) { toast.error(rpcError(error.message, t)); return false; }
     await supabase.from('label_products').update({ inventory_item_id: data.id }).eq('id', p.id);
     setItems(list => [{ ...data, price: Number(data.price), cost: Number(data.cost) }, ...list]);
     setSavedProds(list => list.filter(x => x.id !== p.id));
-    toast.success(t.createdLinked);
+    return true;
+  }
+  async function convertAll() {
+    let n = 0;
+    for (const p of savedProds) if (await createItemFromProduct(p)) n++;
+    if (n) toast.success(t.convertedAll.replace('{n}', String(n)));
   }
 
   async function remove(item: Item) {
     if (!window.confirm(t.confirmDelete)) return;
+    // The label is part of the product: drop it with the item instead of leaving an orphan design.
+    if (can('labels.delete') && labels[item.id]) await supabase.from('label_products').delete().eq('inventory_item_id', item.id);
     const { error } = await supabase.from('inventory_items').delete().eq('id', item.id);
     if (error) { toast.error(rpcError(error.message, t)); return; }
     setItems(list => list.filter(i => i.id !== item.id));
@@ -143,10 +148,10 @@ export function InventoryPage() {
     toast.success(t.deleted);
   }
 
-  function makeLabel(item: Item) {
+  function makeLabel(item: Item, print = false) {
     const saved = labels[item.id];
     const parsed = saved && productSchema.safeParse(saved.data);
-    openItemInEditor(item, saved && parsed?.success && Array.isArray(saved.layout) ? { id: saved.id, data: parsed.data, layout: saved.layout as unknown as LabelElement[], theme: saved.theme } : undefined);
+    openItemInEditor(item, saved && parsed?.success && Array.isArray(saved.layout) ? { id: saved.id, data: parsed.data, layout: saved.layout as unknown as LabelElement[], theme: saved.theme } : undefined, print);
     void navigate({ to: '/' });
   }
 
@@ -180,11 +185,11 @@ export function InventoryPage() {
       </section>
 
       {savedProds.length > 0 && <section className="unlinked-prods">
-        <h3><Tag size={15}/>{t.unlinkedProducts}<span className="unlinked-hint">{t.unlinkedProductsHint}</span></h3>
+        <h3><Tag size={15}/>{t.unlinkedProducts}<span className="unlinked-hint">{t.unlinkedProductsHint}</span>{savedProds.length > 1 && <Button size="sm" className="ms-auto" onClick={() => void convertAll()}><Plus size={14}/>{t.convertAll}</Button>}</h3>
         <div className="unlinked-row">{savedProds.map(p => { const d = p.data as Partial<Product>; return <div key={p.id} className="unlinked-card">
           {d.image ? <img src={d.image} alt={p.name}/> : <span className="unlinked-ph"><Tag size={18}/></span>}
           <div className="unlinked-info"><b>{p.name}</b><span dir="ltr">{d.model || d.barcode || '—'}</span></div>
-          <Button size="sm" variant="outline" onClick={() => void createItemFromProduct(p)}><Plus size={14}/>{t.createInInventory}</Button>
+          <Button size="sm" variant="outline" onClick={() => void createItemFromProduct(p).then(ok => { if (ok) toast.success(t.createdLinked); })}><Plus size={14}/>{t.createInInventory}</Button>
         </div>; })}</div>
       </section>}
 
@@ -208,6 +213,7 @@ export function InventoryPage() {
             <div className="inv-actions" onClick={e => e.stopPropagation()}>
               {can('inventory.edit') && <Button variant="outline" size="sm" onClick={() => setForm({ id: item.id, data: { ...item } })}><Pencil/>{t.edit}</Button>}
               {can('labels.design') && <Button variant="outline" size="sm" onClick={() => makeLabel(item)}><Tag/>{labels[item.id] ? t.openLabel : t.makeLabel}</Button>}
+              {can('labels.print') && <Button variant="ghost" size="icon" aria-label={t.printLabel} title={t.printLabel} onClick={() => makeLabel(item, true)}><Printer/></Button>}
               {can('inventory.delete') && <Button variant="ghost" size="icon" className="inv-delete" aria-label={t.delete} title={t.delete} onClick={() => remove(item)}><Trash2/></Button>}
             </div>
           </div>

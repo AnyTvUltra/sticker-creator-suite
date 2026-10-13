@@ -16,6 +16,13 @@ export async function hasLinkColumn(): Promise<boolean> {
 export const DRAFT_KEY = 'wasm-draft';
 export const DRAFT_PRODUCT_ID_KEY = 'wasm-product-id';
 export const DRAFT_INVENTORY_ID_KEY = 'wasm-inventory-id';
+/** One-shot flag: the editor opens its print dialog right after loading the draft. */
+export const OPEN_PRINT_KEY = 'wasm-open-print';
+
+/** Inventory fields that mirror the label's product data (the inventory item is the source of truth). */
+export function itemFieldsFromProduct(p: Partial<Product>, fallbackName = '') {
+  return { name: (p.name || fallbackName).trim(), model: p.model ?? '', color: p.color ?? '', size: p.size ?? '', specs: p.specs ?? '', warranty: p.warranty ?? '', image: p.image ?? '', barcode: p.barcode ?? '' };
+}
 
 const isCode128 = (code: string) => /^[\x20-\x7E]{1,40}$/.test(code);
 
@@ -37,7 +44,8 @@ export function fitBarcodeElement(elements: LabelElement[], before: Product['cod
 }
 
 /** Store a draft so the editor opens it; links it to the inventory item and optionally an existing saved label. */
-export function openItemInEditor(item: InventoryItem, saved?: { id: string; data: Product; layout: LabelElement[]; theme: string }) {
+export function openItemInEditor(item: InventoryItem, saved?: { id: string; data: Product; layout: LabelElement[]; theme: string }, print = false) {
+  if (print) sessionStorage.setItem(OPEN_PRINT_KEY, '1'); else sessionStorage.removeItem(OPEN_PRINT_KEY);
   let store = sampleProduct.store;
   try { store = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null')?.product?.store || store; } catch { /* ignore invalid draft */ }
   const base = saved?.data ?? { ...sampleProduct, store };

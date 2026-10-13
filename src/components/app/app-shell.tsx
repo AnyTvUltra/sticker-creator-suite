@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Boxes, Languages, LayoutTemplate, LoaderCircle, LogOut, MousePointer2, Package, ReceiptText, ScanBarcode, ShieldAlert, Tag, Users } from 'lucide-react';
+import { Boxes, Languages, LayoutTemplate, LoaderCircle, LogOut, MousePointer2, ReceiptText, ScanBarcode, ShieldAlert, Tag, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,11 +9,11 @@ import type { Permission } from '@/lib/permissions';
 import { useSession } from './session';
 import { ui } from './i18n';
 
-export type AppPage = 'editor' | 'products' | 'templates' | 'inventory' | 'orders' | 'scan' | 'users';
+export type AppPage = 'editor' | 'templates' | 'inventory' | 'orders' | 'scan' | 'users';
 
-const pages: { key: AppPage; to: '/' | '/products' | '/templates' | '/inventory' | '/orders' | '/scan' | '/users'; icon: typeof Tag; access: Permission[] | 'admin' }[] = [
-  { key: 'editor', to: '/', icon: MousePointer2, access: ['labels.design'] },
-  { key: 'products', to: '/products', icon: Package, access: ['labels.design', 'labels.print'] },
+// Products live in the inventory (one item = one product + its label design); there is no separate products page.
+const pages: { key: AppPage; to: '/' | '/templates' | '/inventory' | '/orders' | '/scan' | '/users'; icon: typeof Tag; access: Permission[] | 'admin' }[] = [
+  { key: 'editor', to: '/', icon: MousePointer2, access: ['labels.design', 'labels.print'] },
   { key: 'templates', to: '/templates', icon: LayoutTemplate, access: ['labels.design'] },
   { key: 'inventory', to: '/inventory', icon: Boxes, access: ['inventory.view'] },
   { key: 'orders', to: '/orders', icon: ReceiptText, access: ['orders.view', 'orders.create'] },
@@ -87,7 +87,7 @@ export function AppShell({ active, children }: { active: AppPage; children: Reac
 
   const allowed = (access: Permission[] | 'admin') => access === 'admin' ? profile.is_admin : access.some(can);
   const visible = pages.filter(p => allowed(p.access));
-  const label = (key: AppPage) => ({ editor: t.editor, products: t.products, templates: t.templates, inventory: u.inventory, orders: u.orders, scan: u.scan, users: u.users })[key];
+  const label = (key: AppPage) => ({ editor: t.editor, templates: t.templates, inventory: u.inventory, orders: u.orders, scan: u.scan, users: u.users })[key];
   const page = pages.find(p => p.key === active)!;
   const name = profile.display_name || profile.username;
 

@@ -25,7 +25,7 @@ export const permissionText: Record<Language, { groups: Record<'labels' | 'inven
     items: {
       'labels.design': { title: 'تصميم الملصقات', hint: 'فتح المحرر والقوالب وتعديل التصميم' },
       'labels.print': { title: 'طباعة الملصقات', hint: 'معاينة وطباعة الملصقات على A7 أو A4' },
-      'labels.save': { title: 'حفظ الملصقات', hint: 'حفظ التصاميم في مكتبة المنتجات وتعديلها' },
+      'labels.save': { title: 'حفظ الملصقات', hint: 'حفظ تصميم ملصق المنتج وتعديله' },
       'labels.delete': { title: 'حذف الملصقات', hint: 'حذف التصاميم المحفوظة من المكتبة' },
       'inventory.view': { title: 'عرض المخزن', hint: 'رؤية البضاعة والكميات والأسعار وسجل الحركات' },
       'inventory.create': { title: 'إضافة بضاعة', hint: 'إضافة أصناف جديدة إلى المخزن' },
@@ -44,7 +44,7 @@ export const permissionText: Record<Language, { groups: Record<'labels' | 'inven
     items: {
       'labels.design': { title: 'دیزاینی لیبڵ', hint: 'کردنەوەی دەستکاریکەر و قاڵبەکان و گۆڕینی دیزاین' },
       'labels.print': { title: 'چاپکردنی لیبڵ', hint: 'پێشبینین و چاپکردنی لیبڵ لەسەر A7 یان A4' },
-      'labels.save': { title: 'پاشەکەوتکردنی لیبڵ', hint: 'پاشەکەوتکردنی دیزاین لە کتێبخانە و دەستکاریکردنی' },
+      'labels.save': { title: 'پاشەکەوتکردنی لیبڵ', hint: 'پاشەکەوتکردن و دەستکاریکردنی دیزاینی لیبڵی بەرهەم' },
       'labels.delete': { title: 'سڕینەوەی لیبڵ', hint: 'سڕینەوەی دیزاینە پاشەکەوتکراوەکان' },
       'inventory.view': { title: 'بینینی کۆگا', hint: 'بینینی کاڵا و بڕ و نرخ و تۆماری جوڵەکان' },
       'inventory.create': { title: 'زیادکردنی کاڵا', hint: 'زیادکردنی کاڵای نوێ بۆ کۆگا' },
