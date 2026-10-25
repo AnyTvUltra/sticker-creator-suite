@@ -213,8 +213,10 @@ export function InventoryPage() {
             <div className="inv-actions" onClick={e => e.stopPropagation()}>
               {can('inventory.edit') && <Button variant="outline" size="sm" onClick={() => setForm({ id: item.id, data: { ...item } })}><Pencil/>{t.edit}</Button>}
               {can('labels.design') && <Button variant="outline" size="sm" onClick={() => makeLabel(item)}><Tag/>{labels[item.id] ? t.openLabel : t.makeLabel}</Button>}
-              {can('labels.print') && <Button variant="ghost" size="icon" aria-label={t.printLabel} title={t.printLabel} onClick={() => makeLabel(item, true)}><Printer/></Button>}
-              {can('inventory.delete') && <Button variant="ghost" size="icon" className="inv-delete" aria-label={t.delete} title={t.delete} onClick={() => remove(item)}><Trash2/></Button>}
+              {(can('labels.print') || can('inventory.delete')) && <div className="inv-icon-actions">
+                {can('labels.print') && <Button variant="ghost" size="icon" aria-label={t.printLabel} title={t.printLabel} onClick={() => makeLabel(item, true)}><Printer/></Button>}
+                {can('inventory.delete') && <Button variant="ghost" size="icon" className="inv-delete" aria-label={t.delete} title={t.delete} onClick={() => remove(item)}><Trash2/></Button>}
+              </div>}
             </div>
           </div>
         </article>)}</div>}

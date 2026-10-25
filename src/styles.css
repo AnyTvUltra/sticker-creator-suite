@@ -293,7 +293,8 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
 .inv-qty { display:flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:9px;padding:2px; }
 .inv-qty b { min-width:34px;text-align:center;font-size:14px;font-weight:700; }
 .inv-qty button { width:26px;height:26px;border-radius:7px;border:0;background:var(--muted);display:grid;place-items:center;color:var(--foreground); }.inv-qty button:hover:not(:disabled) { background:var(--accent);color:var(--primary); }.inv-qty button:disabled { opacity:.4;cursor:not-allowed; }
-.inv-actions { display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);margin-top:8px;padding-top:10px; }.inv-actions > :last-child.inv-delete { margin-inline-start:auto; }
+.inv-actions { display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--border);margin-top:8px;padding-top:10px; }.inv-actions > button { flex:1 1 auto;min-width:0; }
+.inv-icon-actions { display:flex;gap:2px;margin-inline-start:auto; }
 .inv-delete { color:var(--destructive)!important; }.inv-delete:hover { background:color-mix(in oklch,var(--destructive) 10%,transparent)!important; }
 .inv-dialog { width:min(760px,calc(100vw - 24px));max-width:760px!important;max-height:92dvh;overflow-y:auto; }
 .inv-form { display:grid;grid-template-columns:180px 1fr;gap:20px; }
@@ -392,7 +393,7 @@ body.is-dragging-label, body.is-dragging-label * { cursor:grabbing!important;use
   .inv-meta { display:none; }
   .inv-row { flex-direction:column;align-items:stretch;gap:8px; }.inv-price b { font-size:15px; }
   .inv-qty { justify-content:space-between; }.inv-qty button { width:32px;height:32px; }
-  .inv-actions { flex-wrap:wrap; }.inv-actions > button:not(.inv-delete) { flex:1 1 100%; }
+  .inv-actions > button { flex:1 1 100%; }.inv-icon-actions { flex:1 1 100%;justify-content:space-between; }
   .inv-badge,.inv-has-label { font-size:9px;padding:2px 7px; }
   .inv-stat { padding:12px;gap:10px; }.inv-stat-icon { width:36px;height:36px; }.inv-stat b { font-size:16px; }
   .inv-adjust-row > button { grid-column:span 1; }
