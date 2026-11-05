@@ -1,6 +1,6 @@
 import type { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
-import { defaultElements, sampleProduct, type DocumentState, type LabelElement, type Product } from '@/components/label-editor/model';
+import { defaultElements, productSchema, sampleProduct, type DocumentState, type LabelElement, type Product } from '@/components/label-editor/model';
 
 export type InventoryItem = Database['public']['Tables']['inventory_items']['Row'];
 
@@ -43,15 +43,47 @@ export function fitBarcodeElement(elements: LabelElement[], before: Product['cod
   return elements.map(el => el.kind === 'barcode' ? { ...el, width: qr ? 60 : 270, height: qr ? 60 : 45, x: qr ? 145 : 40, y: qr ? 418 : 427 } : el);
 }
 
-/** Store a draft so the editor opens it; links it to the inventory item and optionally an existing saved label. */
-export function openItemInEditor(item: InventoryItem, saved?: { id: string; data: Product; layout: LabelElement[]; theme: string }, print = false) {
-  if (print) sessionStorage.setItem(OPEN_PRINT_KEY, '1'); else sessionStorage.removeItem(OPEN_PRINT_KEY);
+/** Code format a layout was designed for, judged by its barcode element's shape (QR is square). */
+export function layoutFormat(elements: LabelElement[]): Product['codeFormat'] {
+  const code = elements.find(el => el.kind === 'barcode');
+  return code && code.width < code.height * 2 ? 'qr' : 'code128';
+}
+
+export type DefaultTemplate = { id: string; name: string; elements: LabelElement[]; theme: string; store: string };
+const DEFAULT_TEMPLATE_KEY = 'wasm-default-template';
+/** The shop template new labels start from; a per-device choice kept in localStorage. */
+export function getDefaultTemplate(): DefaultTemplate | null {
+  try {
+    const tpl = JSON.parse(localStorage.getItem(DEFAULT_TEMPLATE_KEY) || 'null');
+    return tpl && typeof tpl.id === 'string' && Array.isArray(tpl.elements) ? tpl : null;
+  } catch { return null; }
+}
+export function setDefaultTemplate(tpl: DefaultTemplate | null) {
+  if (tpl) localStorage.setItem(DEFAULT_TEMPLATE_KEY, JSON.stringify(tpl)); else localStorage.removeItem(DEFAULT_TEMPLATE_KEY);
+}
+
+export type SavedDesign = { id: string; data: Product; layout: LabelElement[]; theme: string };
+/** Parse a label_products row into a design, or undefined when its JSON is unusable. */
+export function parseSavedDesign(row: { id: string; data: unknown; layout: unknown; theme: string } | undefined): SavedDesign | undefined {
+  const parsed = row && productSchema.safeParse(row.data);
+  return row && parsed?.success && Array.isArray(row.layout) ? { id: row.id, data: parsed.data, layout: row.layout as LabelElement[], theme: row.theme } : undefined;
+}
+
+/** Label document for an inventory item: its saved design, else the default template, else the built-in layout. */
+export function docForItem(item: InventoryItem, saved?: SavedDesign): DocumentState {
+  const tpl = saved ? null : getDefaultTemplate();
   let store = sampleProduct.store;
   try { store = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null')?.product?.store || store; } catch { /* ignore invalid draft */ }
-  const base = saved?.data ?? { ...sampleProduct, store };
+  const base = saved?.data ?? { ...sampleProduct, store: tpl?.store || store };
+  const layout = saved?.layout ?? tpl?.elements ?? defaultElements;
   const product = productFromItem(item, base);
-  const elements = fitBarcodeElement(saved?.layout ?? defaultElements, saved ? base.codeFormat : 'code128', product.codeFormat);
-  const draft: DocumentState = { product, elements, theme: saved?.theme ?? 'mint' };
+  return { product, elements: fitBarcodeElement(layout, saved ? base.codeFormat : layoutFormat(layout), product.codeFormat), theme: saved?.theme ?? tpl?.theme ?? 'mint' };
+}
+
+/** Store a draft so the editor opens it; links it to the inventory item and optionally an existing saved label. */
+export function openItemInEditor(item: InventoryItem, saved?: SavedDesign, print = false) {
+  if (print) sessionStorage.setItem(OPEN_PRINT_KEY, '1'); else sessionStorage.removeItem(OPEN_PRINT_KEY);
+  const draft = docForItem(item, saved);
   sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   sessionStorage.setItem(DRAFT_INVENTORY_ID_KEY, item.id);
   if (saved) sessionStorage.setItem(DRAFT_PRODUCT_ID_KEY, saved.id); else sessionStorage.removeItem(DRAFT_PRODUCT_ID_KEY);

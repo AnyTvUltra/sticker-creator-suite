@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { productSchema, type LabelElement, type Product } from '@/components/label-editor/model';
+import type { Product } from '@/components/label-editor/model';
 import { AppShell } from '@/components/app/app-shell';
 import { useSession } from '@/components/app/session';
 import { rpcError, ui } from '@/components/app/i18n';
-import { hasLinkColumn, itemFieldsFromProduct, openItemInEditor, type InventoryItem } from '@/lib/inventory-link';
+import { docForItem, hasLinkColumn, itemFieldsFromProduct, openItemInEditor, parseSavedDesign, type InventoryItem } from '@/lib/inventory-link';
+import { BulkPrintDialog } from './bulk-print';
 import { BarcodeScanner, isCameraDenied } from '@/components/scan/barcode-scanner';
 
 type Item = InventoryItem;
@@ -64,7 +65,16 @@ export function InventoryPage() {
   const [form, setForm] = useState<{ id: string | null; data: ItemForm } | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [labels, setLabels] = useState<Record<string, SavedLabel>>({});
+  const [picked, setPicked] = useState<string[]>([]);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const detail = items.find(i => i.id === detailId) ?? null;
+  const togglePick = (id: string) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const bulkEntries = useMemo(() => !bulkOpen ? [] : picked.flatMap(id => {
+    const item = items.find(i => i.id === id);
+    if (!item) return [];
+    const saved = parseSavedDesign(labels[id]);
+    return [{ item, doc: docForItem(item, saved), saved: !!saved }];
+  }), [bulkOpen, picked, items, labels]);
 
   async function load() {
     const { data, error } = await supabase.from('inventory_items').select('*').order('updated_at', { ascending: false });
@@ -149,9 +159,7 @@ export function InventoryPage() {
   }
 
   function makeLabel(item: Item, print = false) {
-    const saved = labels[item.id];
-    const parsed = saved && productSchema.safeParse(saved.data);
-    openItemInEditor(item, saved && parsed?.success && Array.isArray(saved.layout) ? { id: saved.id, data: parsed.data, layout: saved.layout as unknown as LabelElement[], theme: saved.theme } : undefined, print);
+    openItemInEditor(item, parseSavedDesign(labels[item.id]), print);
     void navigate({ to: '/' });
   }
 
@@ -196,8 +204,8 @@ export function InventoryPage() {
       {loading ? <div className="grid place-items-center py-24 text-muted-foreground"><LoaderCircle className="animate-spin"/></div>
         : items.length === 0 ? <div className="empty-library"><Package/><h2>{t.emptyInv}</h2><p>{t.emptyInvHint}</p>{can('inventory.create') && <Button className="mt-5" onClick={() => setForm({ id: null, data: { ...emptyForm } })}><Plus/>{t.addItem}</Button>}</div>
         : filtered.length === 0 ? <div className="empty-library"><Search/><h2>{t.noResults}</h2></div>
-        : <div className="inv-grid">{filtered.map(item => <article key={item.id} className="inv-card" onClick={() => setDetailId(item.id)}>
-          <div className="inv-card-media"><ItemImage item={item}/><StockBadge item={item} t={t}/>{item.category && <span className="inv-cat">{item.category}</span>}{labels[item.id] && <span className="inv-has-label" title={t.hasLabel}><Tag size={11}/>{t.hasLabel}</span>}</div>
+        : <div className="inv-grid">{filtered.map(item => <article key={item.id} className={`inv-card ${picked.includes(item.id) ? 'picked' : ''}`} onClick={() => setDetailId(item.id)}>
+          <div className="inv-card-media"><ItemImage item={item}/>{can('labels.print') && <label className="inv-pick" title={t.selectForPrint} onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`${t.selectForPrint}: ${item.name}`} checked={picked.includes(item.id)} onChange={() => togglePick(item.id)}/></label>}<StockBadge item={item} t={t}/>{item.category && <span className="inv-cat">{item.category}</span>}{labels[item.id] && <span className="inv-has-label" title={t.hasLabel}><Tag size={11}/>{t.hasLabel}</span>}</div>
           <div className="inv-card-body">
             <h3 title={item.name}>{item.name}</h3>
             {item.model && <p className="inv-sub" dir="ltr">{item.model}</p>}
@@ -220,7 +228,14 @@ export function InventoryPage() {
             </div>
           </div>
         </article>)}</div>}
+      {picked.length > 0 && <div className="inv-pickbar">
+        <b>{t.selectedCount.replace('{n}', String(picked.length))}</b>
+        <Button size="sm" variant="ghost" onClick={() => setPicked(p => [...new Set([...p, ...filtered.map(i => i.id)])])}>{t.selectAll}</Button>
+        <Button size="sm" variant="ghost" onClick={() => setPicked([])}><X/>{t.clearSelection}</Button>
+        <Button size="sm" className="ms-auto" onClick={() => setBulkOpen(true)}><Printer/>{t.printSelected}</Button>
+      </div>}
     </main>
+    {bulkOpen && bulkEntries.length > 0 && <BulkPrintDialog entries={bulkEntries} language={language} onRemove={id => { if (picked.length <= 1) setBulkOpen(false); setPicked(p => p.filter(x => x !== id)); }} onClose={() => setBulkOpen(false)}/>}
 
     {form && <ItemFormDialog key={form.id ?? 'new'} initial={form} categories={categories} t={t} onClose={() => setForm(null)} onSaved={item => { setItems(list => form.id ? list.map(i => i.id === item.id ? item : i) : [item, ...list]); setForm(null); }}/>}
     {detail && <ItemDetailDialog item={detail} t={t} hasLabel={!!labels[detail.id]} onClose={() => setDetailId(null)} onAdjust={adjust} onEdit={() => { setForm({ id: detail.id, data: { ...detail } }); setDetailId(null); }} onLabel={() => makeLabel(detail)} onDelete={() => remove(detail)}/>}
