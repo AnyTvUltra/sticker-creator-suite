@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { copyFileSync, cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -14,7 +14,8 @@ cpSync(join(root, '.output'), join(desktop, 'server'), { recursive: true });
 // Only public values; the service role key must never ship inside the app.
 writeFileSync(join(desktop, 'env.json'), JSON.stringify({ SUPABASE_URL: process.env.SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY }, null, 2));
 
-await $`bun install`.cwd(desktop);
+// Bun 1.4 on Windows can leave package folders empty when reinstalling, so keep a working install as-is.
+if (!existsSync(join(desktop, 'node_modules', 'electron-builder', 'package.json'))) await $`bun install`.cwd(desktop);
 if (!process.argv.includes('--no-dist')) {
   // Build outside OneDrive: its sync locks files and makes electron-builder fail with EPERM.
   const out = join(process.env.LOCALAPPDATA ?? tmpdir(), 's3r-build');
